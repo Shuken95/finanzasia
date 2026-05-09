@@ -352,6 +352,8 @@ let S = loadState() || {
   filter: 'all',
   quickAdvice: '',
   analysis: null,
+  analysisLoading: false,
+  analysisError: '',
   realBalance: { bbva: null, revolut: null },
   movements: [
     {id:'m1',desc:'Nómina mayo',       amount:2800,type:'income', category:'Nómina',       date:'2026-05-01',source:'bbva'},
@@ -480,6 +482,12 @@ async function aiBatchCategories(items){
 }
 
 async function runAnalysis(){
+  // Test connection first
+  const testResp = await fetch('/api/claude', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({max_tokens:10, messages:[{role:'user',content:'ok'}]})});
+  if(!testResp.ok){
+    const errText = await testResp.text();
+    throw new Error(`No se pudo conectar con la API (${testResp.status}): ${errText.slice(0,100)}`);
+  }
   const c=computed();
   const debtTotal=S.debts.reduce((s,d)=>s+d.remaining,0);
   const debtMon=S.debts.reduce((s,d)=>s+d.monthly,0);
@@ -968,18 +976,30 @@ function rDeudas(){
 // ── ANÁLISIS IA ────────────────────────────────────
 function rAnalysis(){
   const a=S.analysis;
-  if(!a) return `
-    <div class="card card-orange" style="text-align:center;padding:40px 24px">
-      <div style="font-size:50px;margin-bottom:16px">🧠</div>
-      <div style="font-weight:800;font-size:18px;color:var(--cl-text);margin-bottom:10px">Análisis financiero completo</div>
-      <div style="color:var(--cl-muted);font-size:13px;line-height:1.8;margin-bottom:24px">
-        La IA revisará tu situación con BBVA y Revolut:<br/>
-        puntuación de salud financiera, fortalezas,<br/>
-        áreas de mejora y un plan de acción paso a paso<br/>
-        teniendo en cuenta hipoteca, préstamos y ahorros.
-      </div>
-      <button class="btn" id="run-analysis-btn" style="margin:0 auto">✨ Generar análisis completo</button>
-    </div>`;
+  if(!a){
+    if(S.analysisLoading) return `
+      <div class="card card-orange" style="text-align:center;padding:48px 24px">
+        <div style="font-size:48px;margin-bottom:16px">🧠</div>
+        <div style="font-weight:700;font-size:16px;color:var(--cl-text);margin-bottom:8px">Analizando tu situación...</div>
+        <div style="color:var(--cl-muted);font-size:13px;margin-bottom:24px">Esto puede tardar unos segundos</div>
+        <div style="display:flex;justify-content:center">
+          <div style="width:36px;height:36px;border:3px solid var(--cl-border2);border-top-color:var(--cl-orange);border-radius:50%;animation:rot .8s linear infinite"></div>
+        </div>
+      </div>`;
+    return `
+      <div class="card card-orange" style="text-align:center;padding:40px 24px">
+        <div style="font-size:50px;margin-bottom:16px">🧠</div>
+        <div style="font-weight:800;font-size:18px;color:var(--cl-text);margin-bottom:10px">Análisis financiero completo</div>
+        <div style="color:var(--cl-muted);font-size:13px;line-height:1.8;margin-bottom:24px">
+          La IA revisará tu situación con BBVA y Revolut:<br/>
+          puntuación de salud financiera, fortalezas,<br/>
+          áreas de mejora y un plan de acción paso a paso<br/>
+          teniendo en cuenta hipoteca, préstamos y ahorros.
+        </div>
+        ${S.analysisError?`<div style="background:var(--red-bg);border:1px solid rgba(192,57,43,.25);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--red)">${S.analysisError}</div>`:''}
+        <button class="btn" id="run-analysis-btn" style="margin:0 auto">✨ Generar análisis completo</button>
+      </div>`;
+  }
 
   const scoreColor={green:'var(--green)',orange:'var(--cl-orange)',red:'var(--red)'}[a.color]||'var(--cl-orange)';
 
@@ -1076,9 +1096,17 @@ Formato de respuesta: exactamente 3 líneas, cada una empezando con un emoji rel
   // Full analysis
   const ra=document.getElementById('run-analysis-btn');
   if(ra) ra.onclick=async()=>{
-    ra.innerHTML='<span class="spin"></span>Analizando tu situación...'; ra.disabled=true;
-    try{ S.analysis=await runAnalysis(); }
-    catch(e){ console.error(e); toast('⚠️ Error al generar análisis'); S.analysis=null; }
+    S.analysisLoading=true; S.analysisError=''; S.analysis=null;
+    render(); // show spinner
+    try{
+      const result=await runAnalysis();
+      if(!result) throw new Error('La IA devolvió una respuesta vacía');
+      S.analysis=result; S.analysisLoading=false;
+    } catch(e){
+      console.error('Analysis error:', e);
+      S.analysisLoading=false;
+      S.analysisError=`Error: ${e.message}. Comprueba que la API key está configurada en Netlify → Site configuration → Environment variables → ANTHROPIC_API_KEY`;
+    }
     render();
   };
 
