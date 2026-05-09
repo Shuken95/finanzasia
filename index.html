@@ -1200,7 +1200,7 @@ window.resetMovements = ()=>{
 // ══════════════════════════════════════════════════
 // PWA
 // ══════════════════════════════════════════════════
-let deferredPrompt=null;
+let deferredPrompt=null; 
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault(); deferredPrompt=e;
   document.getElementById('install-bar').classList.add('show');
