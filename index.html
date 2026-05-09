@@ -482,30 +482,31 @@ async function aiBatchCategories(items){
 }
 
 async function runAnalysis(){
-  // Test connection first
-  const testResp = await fetch('/api/claude', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({max_tokens:10, messages:[{role:'user',content:'ok'}]})});
-  if(!testResp.ok){
-    const errText = await testResp.text();
-    throw new Error(`No se pudo conectar con la API (${testResp.status}): ${errText.slice(0,100)}`);
-  }
   const c=computed();
   const debtTotal=S.debts.reduce((s,d)=>s+d.remaining,0);
   const debtMon=S.debts.reduce((s,d)=>s+d.monthly,0);
-  const ctx={
-    ingresos:c.totalIn, gastos_reales:c.realOut, balance:c.totalIn-c.realOut,
-    deuda_total:debtTotal, cuotas_mensuales:debtMon,
-    ratio_cuotas_ingresos_pct:c.totalIn>0?Math.round((debtMon/c.totalIn)*100):0,
-    ahorros:S.savings.reduce((s,v)=>s+v.current,0),
-    gastos_por_categoria:c.byCat,
-    deudas:S.debts.map(d=>({nombre:d.name,pendiente:d.remaining,cuota:d.monthly})),
-    cuentas:{bbva:c.bySrc.bbva, revolut:c.bySrc.revolut}
+  const ahorros=S.savings.reduce((s,v)=>s+v.current,0);
+  const topGastos=Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>k+':'+Math.round(v)+'eu').join(',');
+  const deudasStr=S.debts.map(d=>d.name+':'+Math.round(d.remaining)+'eu').join(',');
+
+  const prompt=`Analiza esta situacion financiera y responde UNICAMENTE con un objeto JSON en una sola linea, sin texto antes ni despues, sin markdown:
+{"p":<puntuacion 0-100>,"c":"<green|orange|red>","r":"<resumen 1 frase>","f":["<fuerte1>","<fuerte2>"],"m":["<mejora1>","<mejora2>"],"pl":[{"t":"<titulo>","d":"<detalle>","pr":"<alta|media|baja>"},{"t":"<t>","d":"<d>","pr":"<p>"},{"t":"<t>","d":"<d>","pr":"<p>"}],"e":"<estrategia deuda 1 frase>","a":<ahorro recomendado mes numero>}
+Datos: ingresos=${Math.round(c.totalIn)}eu gastos=${Math.round(c.realOut)}eu deuda_total=${Math.round(debtTotal)}eu cuotas=${Math.round(debtMon)}eu/mes ahorros=${Math.round(ahorros)}eu top_gastos=${topGastos} deudas=${deudasStr}`;
+
+  const raw=await claude(prompt,400);
+  const clean=raw.replace(/```json|```|\n/g,'').trim();
+  const short=JSON.parse(clean);
+  // Expand abbreviated keys to full format expected by rAnalysis
+  return {
+    puntuacion: short.p,
+    color: short.c,
+    resumen: short.r,
+    puntos_fuertes: short.f,
+    areas_mejora: short.m,
+    plan: (short.pl||[]).map(x=>({titulo:x.t, detalle:x.d, prioridad:x.pr})),
+    estrategia_deuda: short.e,
+    ahorro_recomendado_mes: short.a
   };
-  const prompt=`Eres asesor financiero. Devuelve SOLO JSON sin markdown ni explicaciones:
-{"puntuacion":<0-100>,"color":"<green|orange|red>","resumen":"<2 frases>","puntos_fuertes":["<punto>","<punto>"],"areas_mejora":["<área>","<área>"],"plan":[{"titulo":"<título>","detalle":"<1 frase>","prioridad":"<alta|media|baja>"},{"titulo":"<t>","detalle":"<d>","prioridad":"<p>"},{"titulo":"<t>","detalle":"<d>","prioridad":"<p>"}],"estrategia_deuda":"<1-2 frases sobre las deudas>","ahorro_recomendado_mes":<número>}
-Datos: ingresos=${fmt(c.totalIn)}, gastos=${fmt(c.realOut)}, deuda_total=${fmt(debtTotal)}, cuotas=${fmt(debtMon)}/mes, ahorros=${fmt(S.savings.reduce((s,v)=>s+v.current,0))}, top_gastos=${JSON.stringify(Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,4))}, deudas=${JSON.stringify(S.debts.map(d=>({n:d.name,r:d.remaining,m:d.monthly})))}`;
-  const raw=await claude(prompt,600);
-  const clean=raw.replace(/```json|```/g,'').trim();
-  return JSON.parse(clean);
 }
 
 // ══════════════════════════════════════════════════
