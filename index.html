@@ -500,24 +500,10 @@ async function runAnalysis(){
     deudas:S.debts.map(d=>({nombre:d.name,pendiente:d.remaining,cuota:d.monthly})),
     cuentas:{bbva:c.bySrc.bbva, revolut:c.bySrc.revolut}
   };
-  const prompt=`Eres un asesor financiero experto. Analiza y devuelve SOLO JSON válido sin markdown:
-{
-  "puntuacion": <0-100>,
-  "color": "<green|orange|red>",
-  "resumen": "<2-3 frases situación general>",
-  "puntos_fuertes": ["<punto>","<punto>"],
-  "areas_mejora": ["<área>","<área>","<área>"],
-  "plan": [
-    {"titulo":"<título>","detalle":"<1-2 frases concretas>","prioridad":"<alta|media|baja>"},
-    {"titulo":"<título>","detalle":"<detalle>","prioridad":"<prioridad>"},
-    {"titulo":"<título>","detalle":"<detalle>","prioridad":"<prioridad>"},
-    {"titulo":"<título>","detalle":"<detalle>","prioridad":"<prioridad>"}
-  ],
-  "estrategia_deuda": "<consejo específico sobre hipoteca + préstamo coche + préstamo Revolut>",
-  "ahorro_recomendado_mes": <número>
-}
-Datos: ${JSON.stringify(ctx)}`;
-  const raw=await claude(prompt,1200);
+  const prompt=`Eres asesor financiero. Devuelve SOLO JSON sin markdown ni explicaciones:
+{"puntuacion":<0-100>,"color":"<green|orange|red>","resumen":"<2 frases>","puntos_fuertes":["<punto>","<punto>"],"areas_mejora":["<área>","<área>"],"plan":[{"titulo":"<título>","detalle":"<1 frase>","prioridad":"<alta|media|baja>"},{"titulo":"<t>","detalle":"<d>","prioridad":"<p>"},{"titulo":"<t>","detalle":"<d>","prioridad":"<p>"}],"estrategia_deuda":"<1-2 frases sobre las deudas>","ahorro_recomendado_mes":<número>}
+Datos: ingresos=${fmt(c.totalIn)}, gastos=${fmt(c.realOut)}, deuda_total=${fmt(debtTotal)}, cuotas=${fmt(debtMon)}/mes, ahorros=${fmt(S.savings.reduce((s,v)=>s+v.current,0))}, top_gastos=${JSON.stringify(Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,4))}, deudas=${JSON.stringify(S.debts.map(d=>({n:d.name,r:d.remaining,m:d.monthly})))}`;
+  const raw=await claude(prompt,600);
   const clean=raw.replace(/```json|```/g,'').trim();
   return JSON.parse(clean);
 }
@@ -1105,7 +1091,7 @@ Formato de respuesta: exactamente 3 líneas, cada una empezando con un emoji rel
     } catch(e){
       console.error('Analysis error:', e);
       S.analysisLoading=false;
-      S.analysisError=`Error: ${e.message}. Comprueba que la API key está configurada en Netlify → Site configuration → Environment variables → ANTHROPIC_API_KEY`;
+      S.analysisError=`Error: ${e.message}`;
     }
     render();
   };
