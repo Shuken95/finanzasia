@@ -388,10 +388,20 @@ const now  = () => new Date().toISOString().slice(0,10);
 // COMPUTED STATS
 // ══════════════════════════════════════════════════
 function isInterAccount(m){
-  // Transfers between own BBVA <-> Revolut accounts: exclude from real totals
+  // Exclude transfers between own BBVA <-> Revolut accounts from real totals
   const d = m.desc.toLowerCase();
-  if(m.source==='bbva' && (d.includes('para cuenta revo') || d.includes('transferencia realizada - para')||d.includes('enviada desde revolut')||d.includes('transferencia recibida - enviada desde revolut'))) return true;
-  if(m.source==='revolut' && m.category==='Transferencia') return true;
+  if(m.source==='bbva'){
+    // Transfers received from Revolut (user sending money back to BBVA)
+    if(d.includes('enviada desde revolut')) return true;
+    // Transfers sent to Revolut
+    if(d.includes('transferencia realizada') && d.includes('revo')) return true;
+  }
+  if(m.source==='revolut'){
+    // ALL Recargas = top-ups from own BBVA (always internal)
+    if(m.tipo==='Recargas') return true;
+    // Transferencia category = internal
+    if(m.category==='Transferencia') return true;
+  }
   return false;
 }
 
@@ -592,7 +602,7 @@ function parseRevolut(text){
     }
     let date=now();
     if(rawDate.match(/\d{4}-\d{2}-\d{2}/)) date=rawDate;
-    rows.push({id:uid(),desc,amount:Math.abs(amt),type:amt>=0?'income':'expense',category:'Otro',date,source:'revolut'});
+    rows.push({id:uid(),desc,amount:Math.abs(amt),type:amt>=0?'income':'expense',category:'Otro',date,source:'revolut',tipo});
   }
   return {rows, realBalance};
 }
