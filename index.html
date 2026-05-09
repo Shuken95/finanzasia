@@ -670,37 +670,27 @@ function renderContent(){
 function rResumen(){
   const c=computed();
   const sorted=Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,7);
-  const balOk=c.totalIn-c.realOut>=0;
+  const bbvaBalance=S.realBalance.bbva!==null?S.realBalance.bbva:(c.bySrc.bbva.in-c.bySrc.bbva.out);
+  const revBalance=S.realBalance.revolut!==null?S.realBalance.revolut:(c.bySrc.revolut.in-c.bySrc.revolut.out);
+  const totalBalance=bbvaBalance+revBalance;
 
   return `
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Ingresos</div>
-      <div class="stat-value" style="color:var(--green)">${fmt(c.totalIn)}</div>
-      <div class="stat-sub">este mes</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Gastos</div>
-      <div class="stat-value" style="color:var(--red)">${fmt(c.realOut)}</div>
-      <div class="stat-sub">sin transferencias</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Balance</div>
-      <div class="stat-value" style="color:${balOk?'var(--green)':'var(--red)'}">${fmt(c.totalIn-c.realOut)}</div>
-      <div class="stat-sub">disponible</div>
-    </div>
+  <div class="stat-card" style="text-align:center;padding:20px">
+    <div class="stat-label">Dinero total disponible</div>
+    <div class="stat-value" style="color:${totalBalance>=0?'var(--green)':'var(--red)'};font-size:32px">${fmt(totalBalance)}</div>
+    <div class="stat-sub">BBVA ${fmt(bbvaBalance)} · Revolut ${fmt(revBalance)}</div>
   </div>
 
   <div class="accounts-row">
     <div class="account-card bbva">
       <div class="acct-name bbva">🏦 BBVA</div>
       <div class="acct-balance">${S.realBalance.bbva!==null ? fmt(S.realBalance.bbva) : fmt(c.bySrc.bbva.in - c.bySrc.bbva.out)}</div>
-      <div class="acct-sub">${S.realBalance.bbva!==null ? 'Saldo real del extracto' : 'Calculado de movimientos'}<br/>+${fmt(c.bySrc.bbva.in)} / -${fmt(c.bySrc.bbva.out)}</div>
+      <div class="acct-sub">Saldo actual</div>
     </div>
     <div class="account-card revolut">
       <div class="acct-name revolut">💜 Revolut</div>
       <div class="acct-balance">${S.realBalance.revolut!==null ? fmt(S.realBalance.revolut) : fmt(c.bySrc.revolut.in - c.bySrc.revolut.out)}</div>
-      <div class="acct-sub">${S.realBalance.revolut!==null ? 'Saldo real del extracto' : 'Calculado de movimientos'}<br/>+${fmt(c.bySrc.revolut.in)} / -${fmt(c.bySrc.revolut.out)}</div>
+      <div class="acct-sub">Saldo actual</div>
     </div>
   </div>
 
@@ -719,18 +709,7 @@ function rResumen(){
     `).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin gastos registrados aún</div></div>`}
   </div>
 
-  <div class="card card-orange">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="card-title" style="margin:0">✨ Consejo rápido</div>
-      <button class="btn btn-sm btn-outline" id="qa-btn">Analizar</button>
-    </div>
-    <div id="qa-box">
-      ${S.quickAdvice
-        ?`<div style="font-size:13px;line-height:1.8;color:var(--cl-text2);white-space:pre-line">${S.quickAdvice}</div>`
-        :`<div style="color:var(--cl-muted);font-size:13px">Pulsa "Analizar" para un consejo personalizado basado en tus datos.</div>`
-      }
-    </div>
-  </div>`;
+`;
 }
 
 // ── IMPORTAR CSV ───────────────────────────────────
@@ -1200,7 +1179,7 @@ window.resetMovements = ()=>{
 // ══════════════════════════════════════════════════
 // PWA
 // ══════════════════════════════════════════════════
-let deferredPrompt=null; 
+let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault(); deferredPrompt=e;
   document.getElementById('install-bar').classList.add('show');
