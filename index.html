@@ -439,19 +439,17 @@ function toast(msg){
 // CLAUDE API
 // ══════════════════════════════════════════════════
 async function claude(prompt, max=800){
-  try {
-    const r = await fetch('/api/claude', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:max, messages:[{role:'user',content:prompt}]})
-    });
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    return d.content?.[0]?.text?.trim()||'';
-  } catch(e) {
-    console.error('Claude API error:', e);
-    throw e;
-  }
+  const r = await fetch('/api/claude', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({max_tokens:max, messages:[{role:'user',content:prompt}]})
+  });
+  const text = await r.text();
+  if(!r.ok) throw new Error('HTTP '+r.status+': '+text.slice(0,200));
+  let d;
+  try { d = JSON.parse(text); }
+  catch(e) { throw new Error('Respuesta no es JSON valido: '+text.slice(0,200)); }
+  return d.content?.[0]?.text?.trim()||'';
 }
 
 async function aiCategory(desc){
@@ -494,8 +492,10 @@ async function runAnalysis(){
 Datos: ingresos=${Math.round(c.totalIn)}eu gastos=${Math.round(c.realOut)}eu deuda_total=${Math.round(debtTotal)}eu cuotas=${Math.round(debtMon)}eu/mes ahorros=${Math.round(ahorros)}eu top_gastos=${topGastos} deudas=${deudasStr}`;
 
   const raw=await claude(prompt,400);
-  const clean=raw.replace(/```json|```|\n/g,'').trim();
-  const short=JSON.parse(clean);
+  const clean=raw.replace(/```json|```/g,'').trim();
+  let short;
+  try { short=JSON.parse(clean); }
+  catch(e){ throw new Error('JSON invalido recibido: '+clean.slice(0,300)); }
   // Expand abbreviated keys to full format expected by rAnalysis
   return {
     puntuacion: short.p,
