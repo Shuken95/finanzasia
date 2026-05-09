@@ -79,6 +79,7 @@
       overflow-y:hidden;
       display:flex;
       scroll-snap-type:x mandatory;
+      scroll-snap-stop:always;
       scroll-behavior:smooth;
       -webkit-overflow-scrolling:touch;
     }
@@ -724,20 +725,29 @@ document.addEventListener('DOMContentLoaded',()=>{
 
       clearInterval(observer);
 
+      let scrollTimeout;
+
       container.addEventListener('scroll',()=>{
 
-        const index=Math.round(
-          container.scrollLeft / container.clientWidth
-        );
+        clearTimeout(scrollTimeout);
 
-        if(TABS[index] && TABS[index]!==S.tab){
+        scrollTimeout=setTimeout(()=>{
 
-          S.tab=TABS[index];
+          const index=Math.floor(
+            (container.scrollLeft + container.clientWidth * 0.35)
+            / container.clientWidth
+          );
 
-          renderTabs();
+          if(TABS[index] && TABS[index]!==S.tab){
 
-          saveState();
-        }
+            S.tab=TABS[index];
+
+            renderTabs();
+
+            saveState();
+          }
+
+        },120);
 
       });
 
@@ -838,15 +848,7 @@ function rResumen(){
     </div>
   </div>
 
-  ${alerts.length?`<div class="budget-alert">⚠️ Presupuesto excedido en: ${alerts.join(', ')}</div>`:''}
-
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Esta semana</div>
-      <div class="stat-value" style="color:var(--red)">${fmt(c.weekOut)}</div>
-      <div class="stat-sub">en gastos</div>
-    </div>
-    <div class="stat-card">
+  ${alerts.length?`<div class="budget-alert">⚠️ Presupuesto excedido en: ${alerts.join(', ')}</div>`:''}    <div class="stat-card">
       <div class="stat-label">Este mes</div>
       <div class="stat-value" style="color:var(--red)">${fmt(c.realOut)}</div>
       <div class="stat-sub">gastado</div>
