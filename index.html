@@ -72,6 +72,42 @@
     .content::-webkit-scrollbar{width:3px}
     .content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
+    /* ── HORIZONTAL SECTIONS ── */
+    .content-wrapper{
+      flex:1;
+      overflow-x:auto;
+      overflow-y:hidden;
+      display:flex;
+      scroll-snap-type:x mandatory;
+      scroll-behavior:smooth;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .content-wrapper::-webkit-scrollbar{
+      display:none;
+    }
+
+    .page{
+      min-width:100%;
+      height:100%;
+      overflow-y:auto;
+      scroll-snap-align:start;
+      padding:16px 14px calc(var(--safe-bottom)+80px);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      background:var(--bg);
+    }
+
+    .page::-webkit-scrollbar{
+      width:3px;
+    }
+
+    .page::-webkit-scrollbar-thumb{
+      background:var(--border2);
+      border-radius:2px;
+    }
+
     /* ── CARDS ── */
     .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
     .card-title{font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);letter-spacing:.1px}
@@ -302,7 +338,7 @@
     </div>
     <div class="tabs" id="tabs"></div>
   </div>
-  <div class="content" id="content"></div>
+  <div class="content-wrapper" id="content"></div>
 </div>
 
 <!-- FAB -->
@@ -679,11 +715,58 @@ window.addCustomCat=()=>{
 window.removeCustomCat=name=>{delete S.customCats[name];renderCustomCats();saveState();};
 window.setCurrency=v=>{S.currency=v;saveState();render();};
 
+document.addEventListener('DOMContentLoaded',()=>{
+
+  const observer=setInterval(()=>{
+    const container=document.getElementById('content');
+
+    if(container){
+
+      clearInterval(observer);
+
+      container.addEventListener('scroll',()=>{
+
+        const index=Math.round(
+          container.scrollLeft / container.clientWidth
+        );
+
+        if(TABS[index] && TABS[index]!==S.tab){
+
+          S.tab=TABS[index];
+
+          renderTabs();
+
+          saveState();
+        }
+
+      });
+
+    }
+  },100);
+
+});
+
+
 // ═══════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════
 function render(){renderTabs();renderContent();saveState();}
-function setTab(t){S.tab=t;render();}
+function setTab(t){
+  S.tab=t;
+
+  renderTabs();
+
+  const container=document.getElementById('content');
+
+  const index=TABS.indexOf(t);
+
+  container.scrollTo({
+    left:index * container.clientWidth,
+    behavior:'smooth'
+  });
+
+  saveState();
+}
 
 function renderTabs(){
   document.getElementById('tabs').innerHTML=TABS.map(t=>`
@@ -692,14 +775,39 @@ function renderTabs(){
 }
 
 function renderContent(){
+
   const map={
-    'Resumen':rResumen,'Importar CSV':rImport,'Movimientos':rMovimientos,
-    'Presupuesto':rPresupuesto,'Ahorros':rAhorros,'Deudas':rDeudas,'Análisis IA':rAnalysis
+    'Resumen':rResumen,
+    'Importar CSV':rImport,
+    'Movimientos':rMovimientos,
+    'Presupuesto':rPresupuesto,
+    'Ahorros':rAhorros,
+    'Deudas':rDeudas,
+    'Análisis IA':rAnalysis
   };
-  document.getElementById('content').innerHTML=(map[S.tab]||rResumen)();
+
+  const html=TABS.map(tab=>`
+    <section class="page" id="page-${tab}">
+      ${map[tab]()}
+    </section>
+  `).join('');
+
+  const container=document.getElementById('content');
+
+  container.innerHTML=html;
+
   bindEvents();
-  // Draw charts if on resumen
-  if(S.tab==='Resumen') drawCharts();
+
+  if(S.tab==='Resumen'){
+    setTimeout(drawCharts,100);
+  }
+
+  const index=TABS.indexOf(S.tab);
+
+  container.scrollTo({
+    left:index * container.clientWidth,
+    behavior:'smooth'
+  });
 }
 
 // ── RESUMEN ────────────────────────────────────────
