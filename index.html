@@ -72,43 +72,6 @@
     .content::-webkit-scrollbar{width:3px}
     .content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-    /* ── HORIZONTAL SECTIONS ── */
-    .content-wrapper{
-      flex:1;
-      overflow-x:auto;
-      overflow-y:hidden;
-      display:flex;
-      scroll-snap-type:x mandatory;
-      scroll-snap-stop:always;
-      scroll-behavior:smooth;
-      -webkit-overflow-scrolling:touch;
-    }
-
-    .content-wrapper::-webkit-scrollbar{
-      display:none;
-    }
-
-    .page{
-      min-width:100%;
-      height:100%;
-      overflow-y:auto;
-      scroll-snap-align:start;
-      padding:16px 14px calc(var(--safe-bottom)+80px);
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      background:var(--bg);
-    }
-
-    .page::-webkit-scrollbar{
-      width:3px;
-    }
-
-    .page::-webkit-scrollbar-thumb{
-      background:var(--border2);
-      border-radius:2px;
-    }
-
     /* ── CARDS ── */
     .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
     .card-title{font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);letter-spacing:.1px}
@@ -339,7 +302,7 @@
     </div>
     <div class="tabs" id="tabs"></div>
   </div>
-  <div class="content-wrapper" id="content"></div>
+  <div class="content" id="content"></div>
 </div>
 
 <!-- FAB -->
@@ -371,33 +334,49 @@
 <!-- Settings modal -->
 <div id="settings-modal" style="display:none">
   <div class="modal-overlay" onclick="closeSettings()">
-    <div class="modal" onclick="event.stopPropagation()" style="position:relative">
-      <div class="modal-title">⚙️ Ajustes</div>
+    <div class="modal" onclick="event.stopPropagation()" style="position:relative;padding:24px 24px calc(var(--safe-bottom)+28px)">
+      <div class="modal-title" style="font-size:18px;margin-bottom:20px">⚙️ Ajustes</div>
       <button class="modal-close" onclick="closeSettings()">✕</button>
-      <div class="settings-row">
-        <div><div class="settings-label">Modo oscuro</div><div class="settings-sub">Cambia el tema de la app</div></div>
-        <label class="toggle"><input type="checkbox" id="dark-toggle-modal" onchange="toggleDark()"/><span class="toggle-slider"></span></label>
+
+      <!-- Apariencia -->
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Apariencia</div>
+      <div style="background:var(--surface2);border-radius:14px;padding:4px 0;margin-bottom:18px">
+        <div class="settings-row" style="padding:14px 16px">
+          <div><div class="settings-label">Modo oscuro</div><div class="settings-sub">Cambia el tema de la app</div></div>
+          <label class="toggle"><input type="checkbox" id="dark-toggle-modal" onchange="toggleDark()"/><span class="toggle-slider"></span></label>
+        </div>
+        <div style="height:1px;background:var(--border);margin:0 16px"></div>
+        <div class="settings-row" style="padding:14px 16px">
+          <div><div class="settings-label">Moneda</div><div class="settings-sub">Símbolo mostrado en la app</div></div>
+          <select style="width:95px;padding:7px 10px;font-size:13px" id="currency-select" onchange="setCurrency(this.value)">
+            <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+        </div>
       </div>
-      <div class="settings-row">
-        <div><div class="settings-label">Moneda</div><div class="settings-sub">Símbolo mostrado en la app</div></div>
-        <select style="width:90px;padding:6px 8px" id="currency-select" onchange="setCurrency(this.value)">
-          <option value="EUR">€ EUR</option>
-          <option value="USD">$ USD</option>
-          <option value="GBP">£ GBP</option>
-        </select>
+
+      <!-- Categorías -->
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Categorías personalizadas</div>
+      <div style="background:var(--surface2);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+        <div id="custom-cats-list" style="margin-bottom:10px"></div>
+        <div class="form-row" style="gap:8px">
+          <input id="new-cat-emoji" placeholder="🏷️" style="max-width:50px;text-align:center;padding:9px 6px"/>
+          <input id="new-cat-name" placeholder="Nombre de categoría"/>
+          <button class="btn btn-sm" onclick="addCustomCat()">Añadir</button>
+        </div>
       </div>
-      <div class="settings-row">
-        <div><div class="settings-label">Categorías personalizadas</div><div class="settings-sub">Añade tus propias categorías</div></div>
-      </div>
-      <div id="custom-cats-list" style="margin-bottom:8px"></div>
-      <div class="form-row">
-        <input id="new-cat-emoji" placeholder="🏷️" style="max-width:52px;text-align:center"/>
-        <input id="new-cat-name" placeholder="Nombre categoría"/>
-        <button class="btn btn-sm" onclick="addCustomCat()">Añadir</button>
-      </div>
-      <div class="settings-row" style="margin-top:8px">
-        <div><div class="settings-label" style="color:var(--red)">Limpiar datos</div><div class="settings-sub">Elimina todos los movimientos</div></div>
-        <button class="btn btn-sm btn-danger" onclick="resetMovements()">Limpiar</button>
+
+      <!-- Zona peligrosa -->
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--red);margin-bottom:10px">Zona peligrosa</div>
+      <div style="background:var(--red-bg);border:1px solid rgba(192,57,43,.2);border-radius:14px;padding:14px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="settings-label" style="color:var(--red)">Limpiar todos los datos</div>
+            <div class="settings-sub">Elimina movimientos y saldos guardados</div>
+          </div>
+          <button class="btn btn-sm btn-danger" style="margin-left:12px;flex-shrink:0" onclick="resetMovements()">Limpiar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -554,17 +533,33 @@ async function aiCategory(desc){
 
 async function aiBatchCategories(items){
   if(!items.length) return {};
-  const cats=Object.keys(allCats()).join(',');
-  const lines=items.map((x,i)=>`${i+1}.${x.desc}`).join('\n');
-  try{
-    const r=await claude(`Clasifica estos movimientos. Categorias: ${cats}.\n${lines}\nResponde SOLO "N.Categoria" por linea.`,500);
-    const map={};
-    for(const line of r.split('\n')){
-      const m=line.match(/^(\d+)\.(.+)$/);
-      if(m){const idx=parseInt(m[1])-1;const cat=m[2].trim();if(items[idx]&&allCats()[cat])map[items[idx].id]=cat;}
-    }
-    return map;
-  }catch{return{}}
+  const cats=Object.keys(allCats()).join(', ');
+  // Process in chunks of 30 to avoid token limits
+  const chunkSize=30;
+  const map={};
+  for(let i=0;i<items.length;i+=chunkSize){
+    const chunk=items.slice(i,i+chunkSize);
+    const lines=chunk.map((x,j)=>`${j+1}. ${x.desc}`).join('\n');
+    try{
+      const r=await claude(
+        `Eres un clasificador de movimientos bancarios. Para cada movimiento devuelve EXACTAMENTE "N. Categoría" en una línea.
+Categorías disponibles: ${cats}.
+Reglas: Hipoteca/alquiler→Vivienda, nómina/sueldo→Nómina, supermercado/mercadona/lidl/aldi/carrefour→Alimentación, gasolina/parking/peaje/taxi/uber→Transporte, netflix/spotify/amazon prime→Suscripciones, restaurante/bar/cafetería/mcdonalds→Restaurantes, farmacia/médico→Salud, préstamo/cuota→Préstamo, bizum recibido/transferencia recibida→Transferencia.
+Movimientos:
+${lines}`,
+        Math.min(chunk.length*15+100, 500)
+      );
+      for(const line of r.split('\n')){
+        const m=line.match(/^(\d+)[.)\s]+(.+)$/);
+        if(m){
+          const idx=parseInt(m[1])-1;
+          const cat=m[2].trim().replace(/[.,;]$/,'');
+          if(chunk[idx]&&allCats()[cat]) map[chunk[idx].id]=cat;
+        }
+      }
+    }catch(e){console.warn('Batch cat error:',e);}
+  }
+  return map;
 }
 
 async function runAnalysis(){
@@ -716,66 +711,17 @@ window.addCustomCat=()=>{
 window.removeCustomCat=name=>{delete S.customCats[name];renderCustomCats();saveState();};
 window.setCurrency=v=>{S.currency=v;saveState();render();};
 
-document.addEventListener('DOMContentLoaded',()=>{
-
-  const observer=setInterval(()=>{
-    const container=document.getElementById('content');
-
-    if(container){
-
-      clearInterval(observer);
-
-      let scrollTimeout;
-
-      container.addEventListener('scroll',()=>{
-
-        clearTimeout(scrollTimeout);
-
-        scrollTimeout=setTimeout(()=>{
-
-          const index=Math.floor(
-            (container.scrollLeft + container.clientWidth * 0.35)
-            / container.clientWidth
-          );
-
-          if(TABS[index] && TABS[index]!==S.tab){
-
-            S.tab=TABS[index];
-
-            renderTabs();
-
-            saveState();
-          }
-
-        },120);
-
-      });
-
-    }
-  },100);
-
-});
-
-
 // ═══════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════
 function render(){renderTabs();renderContent();saveState();}
 function setTab(t){
-  S.tab=t;
-
-  renderTabs();
-
-  const container=document.getElementById('content');
-
-  const index=TABS.indexOf(t);
-
-  container.scrollTo({
-    left:index * container.clientWidth,
-    behavior:'smooth'
+  S.tab=t;render();
+  // Scroll active tab into view smoothly
+  requestAnimationFrame(()=>{
+    const active=document.querySelector('.tab-btn.active');
+    if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   });
-
-  saveState();
 }
 
 function renderTabs(){
@@ -785,39 +731,14 @@ function renderTabs(){
 }
 
 function renderContent(){
-
   const map={
-    'Resumen':rResumen,
-    'Importar CSV':rImport,
-    'Movimientos':rMovimientos,
-    'Presupuesto':rPresupuesto,
-    'Ahorros':rAhorros,
-    'Deudas':rDeudas,
-    'Análisis IA':rAnalysis
+    'Resumen':rResumen,'Importar CSV':rImport,'Movimientos':rMovimientos,
+    'Presupuesto':rPresupuesto,'Ahorros':rAhorros,'Deudas':rDeudas,'Análisis IA':rAnalysis
   };
-
-  const html=TABS.map(tab=>`
-    <section class="page" id="page-${tab}">
-      ${map[tab]()}
-    </section>
-  `).join('');
-
-  const container=document.getElementById('content');
-
-  container.innerHTML=html;
-
+  document.getElementById('content').innerHTML=(map[S.tab]||rResumen)();
   bindEvents();
-
-  if(S.tab==='Resumen'){
-    setTimeout(drawCharts,100);
-  }
-
-  const index=TABS.indexOf(S.tab);
-
-  container.scrollTo({
-    left:index * container.clientWidth,
-    behavior:'smooth'
-  });
+  // Draw charts if on resumen
+  if(S.tab==='Resumen') drawCharts();
 }
 
 // ── RESUMEN ────────────────────────────────────────
@@ -848,15 +769,40 @@ function rResumen(){
     </div>
   </div>
 
-  ${alerts.length?`<div class="budget-alert">⚠️ Presupuesto excedido en: ${alerts.join(', ')}</div>`:''}    <div class="stat-card">
-      <div class="stat-label">Este mes</div>
-      <div class="stat-value" style="color:var(--red)">${fmt(c.realOut)}</div>
-      <div class="stat-sub">gastado</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Previsión mes</div>
-      <div class="stat-value" style="color:${forecast>c.totalIn?'var(--red)':'var(--orange)'}">${fmt(forecast)}</div>
-      <div class="stat-sub">a este ritmo</div>
+  ${alerts.length?`<div class="budget-alert">⚠️ Presupuesto excedido en: ${alerts.join(', ')}</div>`:''}
+
+  <!-- Debt summary cards - horizontal scroll -->
+  <div>
+    <div class="section-label">Mis préstamos</div>
+    <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;-webkit-overflow-scrolling:touch">
+      <style>.debt-scroll::-webkit-scrollbar{display:none}</style>
+      ${S.debts.length?S.debts.map(d=>{
+        const paid=d.total-d.remaining;
+        const pct=Math.min(Math.round((paid/d.total)*100),100);
+        const months=d.monthly>0?Math.ceil(d.remaining/d.monthly):null;
+        const arc=2*Math.PI*28;
+        const dash=arc*(pct/100);
+        return `<div style="flex-shrink:0;width:160px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <svg width="44" height="44" style="flex-shrink:0">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="var(--surface2)" stroke-width="4"/>
+              <circle cx="22" cy="22" r="18" fill="none" stroke="${d.color}" stroke-width="4"
+                stroke-dasharray="${dash.toFixed(1)} ${(arc-dash).toFixed(1)}"
+                stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="26" text-anchor="middle" font-size="9" font-weight="700" fill="${d.color}" font-family="JetBrains Mono,monospace">${pct}%</text>
+            </svg>
+            <div style="min-width:0">
+              <div style="font-weight:700;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.name}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:1px">${months?months+' meses':'—'}</div>
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red)">${fmt(d.remaining)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">pendiente · ${fmt(d.monthly)}/mes</div>
+          <div style="background:var(--surface2);border-radius:4px;height:4px;margin-top:8px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${d.color};border-radius:4px;transition:width .5s ease"></div>
+          </div>
+        </div>`;
+      }).join(''):`<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin préstamos registrados — añádelos en la pestaña <strong>Deudas</strong></div>`}
     </div>
   </div>
 
