@@ -1487,55 +1487,67 @@ window.openAmort = function(id){
     const gc=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
     const tc=isDark?'#8A7A6E':'#8A7A65';
 
-    // Sample to ~20 points
+    // Sample to ~20 points max for performance
     const step=Math.max(1,Math.floor(schedule.length/20));
+    // Start from current balance, then sampled points going down to 0
     const pts=[{m:0,rem:d.remaining},...schedule.filter((_,i)=>i%step===0||i===schedule.length-1)];
 
-    const padL=44,padR=10,padT=10,padB=22;
+    const padL=44,padR=10,padT=14,padB=22;
     const cW=W-padL-padR, cH=H-padT-padB;
-    const maxR=d.remaining;
+    const maxR=d.remaining; // top of chart = current debt
 
-    // Grid
+    // Grid lines + Y labels (debt decreasing from top to bottom)
     ctx.strokeStyle=gc; ctx.lineWidth=1;
     [0,.25,.5,.75,1].forEach(f=>{
       const y=padT+cH*f;
       ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
       ctx.fillStyle=tc;ctx.font='700 9px Sora,sans-serif';ctx.textAlign='right';
-      ctx.fillText(Math.round(maxR*(1-f)/1000)+'k€',padL-4,y+3);
+      // f=0 → top → maxR (full debt); f=1 → bottom → 0
+      const val=maxR*(1-f);
+      ctx.fillText(val>=1000?Math.round(val/1000)+'k':Math.round(val),padL-4,y+3);
     });
 
-    // Area gradient
+    // Area gradient (top = color, bottom = transparent)
     const grad=ctx.createLinearGradient(0,padT,0,padT+cH);
-    grad.addColorStop(0,d.color+'55');
+    grad.addColorStop(0,d.color+'50');
     grad.addColorStop(1,d.color+'08');
 
-    // Path
-    ctx.beginPath();
-    pts.forEach((p,i)=>{
-      const x=padL+cW*(i/(pts.length-1||1));
-      const y=padT+cH*(p.rem/maxR);
-      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-    });
-    const lastX=padL+cW*(( pts.length-1)/(pts.length-1||1));
-    const lastY=padT+cH*(pts[pts.length-1].rem/maxR);
-    ctx.lineTo(lastX,padT+cH); ctx.lineTo(padL,padT+cH);
-    ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+    // Convert rem value to Y: high rem → low Y (top), rem=0 → Y=padT+cH (bottom)
+    const remToY = rem => padT + cH*(1 - rem/maxR);
 
-    // Line
+    // Filled area under the curve
+    ctx.beginPath();
+    ctx.moveTo(padL, remToY(pts[0].rem));
+    pts.forEach((p,i)=>{
+      const x=padL+cW*(i/(pts.length-1||1));
+      ctx.lineTo(x, remToY(p.rem));
+    });
+    ctx.lineTo(padL+cW, padT+cH);
+    ctx.lineTo(padL, padT+cH);
+    ctx.closePath();
+    ctx.fillStyle=grad; ctx.fill();
+
+    // Line on top
     ctx.beginPath();
     pts.forEach((p,i)=>{
       const x=padL+cW*(i/(pts.length-1||1));
-      const y=padT+cH*(p.rem/maxR);
+      const y=remToY(p.rem);
       i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
     });
     ctx.strokeStyle=d.color; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
 
-    // X labels (first, mid, last)
-    [[0,0],[Math.floor(pts.length/2),Math.floor(pts.length/2)],[pts.length-1,pts.length-1]].forEach(([pi])=>{
+    // Dot at start (current position)
+    ctx.beginPath();
+    ctx.arc(padL, remToY(d.remaining), 4, 0, 2*Math.PI);
+    ctx.fillStyle=d.color; ctx.fill();
+
+    // X labels: month 0, midpoint, last month
+    const xPts=[0, Math.floor((pts.length-1)/2), pts.length-1];
+    xPts.forEach(pi=>{
       if(!pts[pi]) return;
       const x=padL+cW*(pi/(pts.length-1||1));
       ctx.fillStyle=tc; ctx.font='700 9px Sora,sans-serif'; ctx.textAlign='center';
-      ctx.fillText('m'+pts[pi].m, x, H-padB+14);
+      ctx.fillText('m'+pts[pi].m, x, H-4);
     });
   });
 
