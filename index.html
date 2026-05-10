@@ -334,50 +334,59 @@
 <!-- Settings modal -->
 <div id="settings-modal" style="display:none">
   <div class="modal-overlay" onclick="closeSettings()">
-    <div class="modal" onclick="event.stopPropagation()" style="position:relative;padding:28px 20px calc(var(--safe-bottom)+28px)">
-      <div class="modal-title" style="font-size:18px;margin-bottom:20px;padding-right:40px">⚙️ Ajustes</div>
-      <button class="modal-close" onclick="closeSettings()" style="top:24px;right:20px">✕</button>
+    <div class="modal" onclick="event.stopPropagation()" style="position:relative;padding:0;border-radius:24px 24px 0 0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column">
 
-      <!-- Apariencia -->
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;padding-left:4px">Apariencia</div>
-      <div style="background:var(--surface2);border-radius:14px;padding:4px 0;margin-bottom:18px">
-        <div class="settings-row" style="padding:14px 16px">
-          <div><div class="settings-label">Modo oscuro</div><div class="settings-sub">Cambia el tema de la app</div></div>
-          <label class="toggle"><input type="checkbox" id="dark-toggle-modal" onchange="toggleDark()"/><span class="toggle-slider"></span></label>
-        </div>
-        <div style="height:1px;background:var(--border);margin:0 16px"></div>
-        <div class="settings-row" style="padding:14px 16px">
-          <div><div class="settings-label">Moneda</div><div class="settings-sub">Símbolo mostrado en la app</div></div>
-          <select style="width:95px;padding:7px 10px;font-size:13px" id="currency-select" onchange="setCurrency(this.value)">
-            <option value="EUR">€ EUR</option>
-            <option value="USD">$ USD</option>
-            <option value="GBP">£ GBP</option>
-          </select>
-        </div>
+      <!-- Header fijo -->
+      <div style="padding:28px 28px 16px;flex-shrink:0;position:relative">
+        <div style="font-weight:800;font-size:20px;color:var(--text)">⚙️ Ajustes</div>
+        <button class="modal-close" onclick="closeSettings()" style="position:absolute;top:26px;right:24px;width:32px;height:32px;border-radius:10px">✕</button>
       </div>
 
-      <!-- Categorías -->
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;padding-left:4px">Categorías personalizadas</div>
-      <div style="background:var(--surface2);border-radius:14px;padding:14px 16px;margin-bottom:18px">
-        <div id="custom-cats-list" style="margin-bottom:10px"></div>
-        <div class="form-row" style="gap:8px">
-          <input id="new-cat-emoji" placeholder="🏷️" style="max-width:50px;text-align:center;padding:9px 6px"/>
-          <input id="new-cat-name" placeholder="Nombre de categoría"/>
-          <button class="btn btn-sm" onclick="addCustomCat()">Añadir</button>
-        </div>
-      </div>
+      <!-- Contenido con scroll propio -->
+      <div style="overflow-y:auto;padding:0 28px calc(var(--safe-bottom)+32px);flex:1">
 
-      <!-- Zona peligrosa -->
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--red);margin-bottom:10px;padding-left:4px">Zona peligrosa</div>
-      <div style="background:var(--red-bg);border:1px solid rgba(192,57,43,.2);border-radius:14px;padding:14px 16px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div class="settings-label" style="color:var(--red)">Limpiar todos los datos</div>
-            <div class="settings-sub">Elimina movimientos y saldos guardados</div>
+        <!-- Apariencia -->
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Apariencia</div>
+        <div style="background:var(--surface2);border-radius:16px;margin-bottom:24px;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px">
+            <div><div style="font-weight:600;font-size:14px;color:var(--text)">Modo oscuro</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Cambia el tema de la app</div></div>
+            <label class="toggle"><input type="checkbox" id="dark-toggle-modal" onchange="toggleDark()"/><span class="toggle-slider"></span></label>
           </div>
-          <button class="btn btn-sm btn-danger" style="margin-left:12px;flex-shrink:0" onclick="resetMovements()">Limpiar</button>
+          <div style="height:1px;background:var(--border);margin:0 18px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px">
+            <div><div style="font-weight:600;font-size:14px;color:var(--text)">Moneda</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Símbolo mostrado en la app</div></div>
+            <select style="width:95px;padding:8px 10px;font-size:13px;border-radius:10px" id="currency-select" onchange="setCurrency(this.value)">
+              <option value="EUR">€ EUR</option>
+              <option value="USD">$ USD</option>
+              <option value="GBP">£ GBP</option>
+            </select>
+          </div>
         </div>
-      </div>
+
+        <!-- Categorías -->
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Categorías personalizadas</div>
+        <div style="background:var(--surface2);border-radius:16px;padding:18px;margin-bottom:24px">
+          <div id="custom-cats-list" style="margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px">
+            <input id="new-cat-emoji" placeholder="🏷️" style="max-width:52px;text-align:center;padding:9px 6px"/>
+            <input id="new-cat-name" placeholder="Nombre de categoría"/>
+            <button class="btn btn-sm" onclick="addCustomCat()">Añadir</button>
+          </div>
+        </div>
+
+        <!-- Zona peligrosa -->
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--red);margin-bottom:10px">Zona peligrosa</div>
+        <div style="background:var(--red-bg);border:1px solid rgba(192,57,43,.2);border-radius:16px;padding:18px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:var(--red)">Limpiar todos los datos</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Elimina movimientos y saldos guardados</div>
+            </div>
+            <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="resetMovements()">Limpiar</button>
+          </div>
+        </div>
+
+      </div><!-- fin scroll -->
     </div>
   </div>
 </div>
