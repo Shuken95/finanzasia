@@ -278,6 +278,20 @@
     /* ── CUSTOM CATEGORIES ── */
     .custom-cat-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:5px 10px;font-size:12px;font-weight:600;margin:3px}
   </style>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CONFIG -->
+  <script>
+    window.APP_CONFIG = {
+      SUPABASE_URL: "TU_SUPABASE_URL",
+      SUPABASE_ANON_KEY: "TU_SUPABASE_ANON_KEY",
+      NORDIGEN_SECRET_ID: "TU_NORDIGEN_SECRET_ID",
+      NORDIGEN_SECRET_KEY: "TU_NORDIGEN_SECRET_KEY"
+    };
+  </script>
+
 </head>
 <body>
 
@@ -297,6 +311,7 @@
       </div>
       <div class="header-actions">
         <button class="icon-btn" id="dark-toggle" title="Modo oscuro/claro">🌙</button>
+        <button class="icon-btn" onclick="connectBank()" title="Conectar banco">🏦</button>
         <button class="icon-btn" id="settings-btn" title="Ajustes">⚙️</button>
       </div>
     </div>
@@ -1812,6 +1827,114 @@ window.openAmort = function(id){
 // ═══════════════════════════════════════════════════
 applyDark();
 render();
+
+// ═══════════════════════════════════════════════════
+// AUTH + CLOUD + PSD2 (STARTER)
+// ═══════════════════════════════════════════════════
+
+const supabaseClient = window.supabase.createClient(
+  window.APP_CONFIG.SUPABASE_URL,
+  window.APP_CONFIG.SUPABASE_ANON_KEY
+);
+
+async function signInAnonymously(){
+  try{
+    const { data, error } = await supabaseClient.auth.signInAnonymously();
+    if(error) throw error;
+    console.log('Auth OK', data);
+  }catch(err){
+    console.error('Auth error:', err);
+  }
+}
+
+async function saveMovementsToCloud(){
+  try{
+    const payload = S.movements.map(m => ({
+      movement_id: m.id,
+      description: m.desc,
+      amount: m.amount,
+      type: m.type,
+      category: m.category,
+      movement_date: m.date,
+      source: m.source
+    }));
+
+    const { error } = await supabaseClient
+      .from('movements')
+      .upsert(payload, { onConflict: 'movement_id' });
+
+    if(error) throw error;
+
+    console.log('Movimientos sincronizados');
+  }catch(err){
+    console.error('Cloud sync error:', err);
+  }
+}
+
+async function loadMovementsFromCloud(){
+  try{
+    const { data, error } = await supabaseClient
+      .from('movements')
+      .select('*')
+      .order('movement_date', { ascending: false });
+
+    if(error) throw error;
+
+    if(data && data.length){
+      S.movements = data.map(m => ({
+        id: m.movement_id,
+        desc: m.description,
+        amount: m.amount,
+        type: m.type,
+        category: m.category,
+        date: m.movement_date,
+        source: m.source
+      }));
+
+      render();
+    }
+  }catch(err){
+    console.error('Load cloud error:', err);
+  }
+}
+
+// PSD2 / Nordigen starter
+async function createNordigenToken(){
+  try{
+    const response = await fetch('https://bankaccountdata.gocardless.com/api/v2/token/new/', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        secret_id: window.APP_CONFIG.NORDIGEN_SECRET_ID,
+        secret_key: window.APP_CONFIG.NORDIGEN_SECRET_KEY
+      })
+    });
+
+    return await response.json();
+  }catch(err){
+    console.error('Nordigen token error:', err);
+  }
+}
+
+// Placeholder button action
+async function connectBank(){
+  toast('🔗 Próximamente: conexión PSD2');
+  console.log('Implementar flujo requisition de Nordigen');
+}
+
+// Auto cloud sync
+const originalSaveState = saveState;
+saveState = function(){
+  originalSaveState();
+  saveMovementsToCloud();
+};
+
+// Startup
+window.addEventListener('load', async ()=>{
+  await signInAnonymously();
+  await loadMovementsFromCloud();
+});
+
 </script>
 </body>
 </html>
