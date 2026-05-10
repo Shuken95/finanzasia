@@ -431,15 +431,32 @@
 </div>
 
 <!-- Confirm delete modal -->
-<div id="confirm-modal" style="display:none">
-  <div class="modal-overlay" onclick="closeConfirm()">
-    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:20px;margin:auto;max-width:320px;padding:24px;box-shadow:var(--shadow-md);position:relative;top:50%;transform:translateY(-50%)">
-      <div style="font-weight:800;font-size:16px;color:var(--text);margin-bottom:8px">¿Eliminar?</div>
-      <div id="confirm-msg" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5"></div>
-      <div style="display:flex;gap:10px">
-        <button onclick="closeConfirm()" class="btn btn-ghost btn-full">Cancelar</button>
-        <button id="confirm-ok-btn" class="btn btn-full" style="background:var(--red);box-shadow:none">Eliminar</button>
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;padding:24px">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeConfirm()"></div>
+  <div style="position:relative;background:var(--surface);border-radius:20px;width:100%;max-width:320px;padding:24px;box-shadow:var(--shadow-md);z-index:1">
+    <div style="font-weight:800;font-size:16px;color:var(--text);margin-bottom:8px">¿Eliminar?</div>
+    <div id="confirm-msg" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeConfirm()" class="btn btn-ghost btn-full">Cancelar</button>
+      <button id="confirm-ok-btn" class="btn btn-full" style="background:var(--red);box-shadow:none">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV Import sheet -->
+<div id="import-sheet" style="display:none">
+  <div class="modal-overlay" onclick="closeImport()">
+    <div class="modal" onclick="event.stopPropagation()" style="position:relative;padding:28px 24px calc(var(--safe-bottom)+28px)">
+      <div id="import-sheet-title" style="font-weight:800;font-size:18px;color:var(--text);margin-bottom:6px;padding-right:36px"></div>
+      <div id="import-sheet-tip" style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7"></div>
+      <button onclick="closeImport()" class="modal-close">✕</button>
+      <div id="import-drop-zone" style="border:2px dashed var(--border2);border-radius:14px;padding:32px 16px;text-align:center;cursor:pointer;background:var(--surface2);position:relative;transition:all .25s">
+        <input type="file" id="import-file-input" accept=".csv,.txt,.xls,.xlsx" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+        <div style="font-size:36px;margin-bottom:10px" id="import-sheet-icon"></div>
+        <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">Selecciona o arrastra el archivo</div>
+        <div style="font-size:12px;color:var(--muted)">CSV · TXT · XLS · XLSX</div>
       </div>
+      <div id="import-sheet-count" style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px"></div>
     </div>
   </div>
 </div>
@@ -472,7 +489,7 @@
 // ═══════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════
-const TABS=['Resumen','Importar CSV','Movimientos','Presupuesto','Análisis IA'];
+const TABS=['Resumen','Movimientos','Presupuesto','Análisis IA'];
 
 const BASE_CATEGORIES={
   'Alimentación':'🛒','Transporte':'🚗','Vivienda':'🏠','Salud':'💊','Ocio':'🎬',
@@ -799,19 +816,17 @@ window.setCurrency=v=>{S.currency=v;saveState();render();};
 // RENDER
 // ═══════════════════════════════════════════════════
 function render(){renderTabs();renderContent();saveState();}
-function setTab(t){
-  S.tab=t;render();
-  // Scroll active tab into view smoothly
-  requestAnimationFrame(()=>{
-    const active=document.querySelector('.tab-btn.active');
-    if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-  });
-}
+function setTab(t){ S.tab=t; render(); }
 
 function renderTabs(){
   document.getElementById('tabs').innerHTML=TABS.map(t=>`
     <button class="tab-btn ${S.tab===t?'active':''}" onclick="setTab('${t}')">${t}</button>
   `).join('');
+  // Always scroll active tab into view after rendering
+  requestAnimationFrame(()=>{
+    const active=document.querySelector('.tab-btn.active');
+    if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  });
 }
 
 function renderContent(){
@@ -841,13 +856,15 @@ function rResumen(){
     <div class="balance-hero-label">Dinero total disponible</div>
     <div class="balance-hero-amount">${fmt(totalBalance)}</div>
     <div class="balance-accounts">
-      <div class="balance-account">
+      <div class="balance-account" onclick="openImport('bbva')" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
         <div class="balance-account-name">BBVA</div>
         <div class="balance-account-amt">${fmt(bbvaBalance)}</div>
+        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 Importar CSV</div>
       </div>
-      <div class="balance-account">
+      <div class="balance-account" onclick="openImport('revolut')" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
         <div class="balance-account-name">REVOLUT</div>
         <div class="balance-account-amt">${fmt(revBalance)}</div>
+        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 Importar CSV</div>
       </div>
     </div>
   </div>
@@ -1500,14 +1517,18 @@ let _confirmCb = null;
 window.confirmDelete = (type, id, name)=>{
   document.getElementById('confirm-msg').textContent = `¿Seguro que quieres eliminar "${name}"? Esta acción no se puede deshacer.`;
   _confirmCb = ()=>{
-    if(type==='debt')  { S.debts  =S.debts.filter(d=>d.id!==id);   S.analysis=null; }
+    if(type==='debt')  { S.debts  =S.debts.filter(d=>d.id!==id); S.analysis=null; }
     if(type==='saving'){ S.savings=S.savings.filter(s=>s.id!==id); }
-    render(); toast('🗑 Eliminado');
+    closeConfirm(); render(); toast('🗑 Eliminado');
   };
-  document.getElementById('confirm-modal').style.display='block';
-  document.getElementById('confirm-ok-btn').onclick=()=>{ _confirmCb&&_confirmCb(); closeConfirm(); };
+  const m=document.getElementById('confirm-modal');
+  m.style.display='flex';
+  document.getElementById('confirm-ok-btn').onclick=()=>{ _confirmCb&&_confirmCb(); };
 };
-window.closeConfirm = ()=>{ document.getElementById('confirm-modal').style.display='none'; _confirmCb=null; };
+window.closeConfirm = ()=>{
+  const m=document.getElementById('confirm-modal');
+  m.style.display='none'; _confirmCb=null;
+};
 
 // ── Long press detection (touch) ────────────────────
 (function(){
@@ -1568,6 +1589,45 @@ function bindEvents(){
   bindAddDebtModal();
   bindAddSavingModal();
 }
+
+// ═══════════════════════════════════════════════════
+// CSV IMPORT SHEET
+// ═══════════════════════════════════════════════════
+let _importSource = 'bbva';
+
+window.openImport = (source)=>{
+  _importSource = source;
+  const isBBVA = source==='bbva';
+  document.getElementById('import-sheet').style.display='block';
+  document.getElementById('import-sheet-title').textContent = isBBVA ? '🏦 Importar BBVA' : '💜 Importar Revolut';
+  document.getElementById('import-sheet-icon').textContent = isBBVA ? '🏦' : '💜';
+  document.getElementById('import-sheet-tip').innerHTML = isBBVA
+    ? 'En BBVA online: <strong>Mis productos → Movimientos → Descargar → CSV</strong>'
+    : 'En Revolut app: <strong>Perfil → Extractos → Descarga CSV</strong>';
+  const n = S.movements.filter(m=>m.source===source).length;
+  document.getElementById('import-sheet-count').textContent = n ? n+' movimientos de '+( isBBVA?'BBVA':'Revolut')+' ya cargados' : '';
+
+  // Bind file input
+  const fi = document.getElementById('import-file-input');
+  fi.value = '';
+  fi.onchange = async e=>{
+    if(!e.target.files[0]) return;
+    closeImport();
+    await handleImport(e.target.files[0], _importSource);
+  };
+
+  // Drag and drop
+  const dz = document.getElementById('import-drop-zone');
+  dz.ondragover = e=>{ e.preventDefault(); dz.style.borderColor='var(--orange)'; dz.style.background='var(--orange-bg)'; };
+  dz.ondragleave = ()=>{ dz.style.borderColor=''; dz.style.background=''; };
+  dz.ondrop = async e=>{
+    e.preventDefault(); dz.style.borderColor=''; dz.style.background='';
+    const f=e.dataTransfer.files[0];
+    if(f){ closeImport(); await handleImport(f, _importSource); }
+  };
+};
+
+window.closeImport = ()=>{ document.getElementById('import-sheet').style.display='none'; };
 
 // ═══════════════════════════════════════════════════
 // AMORTIZATION MODAL
