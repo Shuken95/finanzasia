@@ -346,7 +346,7 @@
       <div style="overflow-y:auto;padding:0 28px calc(var(--safe-bottom)+32px);flex:1">
 
         <!-- Apariencia -->
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Apariencia</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;text-align:center;padding:0 20px">Apariencia</div>
         <div style="background:var(--surface2);border-radius:16px;margin-bottom:24px;overflow:hidden">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px">
             <div><div style="font-weight:600;font-size:14px;color:var(--text)">Modo oscuro</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Cambia el tema de la app</div></div>
@@ -364,7 +364,7 @@
         </div>
 
         <!-- Categorías -->
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Categorías personalizadas</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;text-align:center;padding:0 20px">Categorías personalizadas</div>
         <div style="background:var(--surface2);border-radius:16px;padding:18px;margin-bottom:24px">
           <div id="custom-cats-list" style="margin-bottom:12px"></div>
           <div style="display:flex;gap:8px">
@@ -375,7 +375,7 @@
         </div>
 
         <!-- Zona peligrosa -->
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--red);margin-bottom:10px">Zona peligrosa</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--red);margin-bottom:10px;text-align:center;padding:0 20px">Zona peligrosa</div>
         <div style="background:var(--red-bg);border:1px solid rgba(192,57,43,.2);border-radius:16px;padding:18px;margin-bottom:8px">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
             <div>
@@ -392,6 +392,30 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- Amortization detail modal -->
+<div id="amort-modal" style="display:none">
+  <div class="modal-overlay" onclick="closeAmort()">
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:24px 24px 14px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div id="amort-title" style="font-weight:800;font-size:18px;color:var(--text)"></div>
+          <div id="amort-sub" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
+        </div>
+        <button onclick="closeAmort()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:34px;height:34px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:0 20px calc(var(--safe-bottom)+28px)">
+        <div id="amort-hero" style="display:flex;gap:8px;margin-bottom:16px"></div>
+        <div style="background:var(--surface2);border-radius:16px;padding:16px;margin-bottom:16px">
+          <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:14px">📉 Evolución del saldo pendiente</div>
+          <canvas id="amort-chart"></canvas>
+        </div>
+        <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px">📋 Primeros pagos</div>
+        <div id="amort-table"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════
@@ -780,38 +804,74 @@ function rResumen(){
 
   ${alerts.length?`<div class="budget-alert">⚠️ Presupuesto excedido en: ${alerts.join(', ')}</div>`:''}
 
-  <!-- Debt summary cards - horizontal scroll -->
+  <!-- Debt cards -->
   <div>
     <div class="section-label">Mis préstamos</div>
     <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;-webkit-overflow-scrolling:touch">
-      <style>.debt-scroll::-webkit-scrollbar{display:none}</style>
       ${S.debts.length?S.debts.map(d=>{
         const paid=d.total-d.remaining;
         const pct=Math.min(Math.round((paid/d.total)*100),100);
         const months=d.monthly>0?Math.ceil(d.remaining/d.monthly):null;
-        const arc=2*Math.PI*28;
+        const arc=2*Math.PI*20;
         const dash=arc*(pct/100);
-        return `<div style="flex-shrink:0;width:160px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow)">
+        return `<div onclick="openAmort('${d.id}')" style="flex-shrink:0;width:168px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;box-shadow:var(--shadow);cursor:pointer;-webkit-tap-highlight-color:transparent">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <svg width="44" height="44" style="flex-shrink:0">
-              <circle cx="22" cy="22" r="18" fill="none" stroke="var(--surface2)" stroke-width="4"/>
-              <circle cx="22" cy="22" r="18" fill="none" stroke="${d.color}" stroke-width="4"
+            <svg width="40" height="40" viewBox="0 0 40 40" style="flex-shrink:0">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--surface2)" stroke-width="4"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="${d.color}" stroke-width="4"
                 stroke-dasharray="${dash.toFixed(1)} ${(arc-dash).toFixed(1)}"
-                stroke-linecap="round" transform="rotate(-90 22 22)"/>
-              <text x="22" y="26" text-anchor="middle" font-size="9" font-weight="700" fill="${d.color}" font-family="JetBrains Mono,monospace">${pct}%</text>
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="${d.color}" font-family="JetBrains Mono,monospace">${pct}%</text>
             </svg>
-            <div style="min-width:0">
+            <div style="min-width:0;flex:1">
               <div style="font-weight:700;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.name}</div>
-              <div style="font-size:10px;color:var(--muted);margin-top:1px">${months?months+' meses':'—'}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${months?'~'+months+' meses':'—'}</div>
             </div>
           </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red)">${fmt(d.remaining)}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px">pendiente · ${fmt(d.monthly)}/mes</div>
-          <div style="background:var(--surface2);border-radius:4px;height:4px;margin-top:8px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:${d.color};border-radius:4px;transition:width .5s ease"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--red)">${fmt(d.remaining)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmt(d.monthly)}/mes</div>
+          <div style="background:var(--surface2);border-radius:4px;height:4px;margin-top:10px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${d.color};border-radius:4px"></div>
           </div>
+          <div style="font-size:10px;color:var(--muted2);margin-top:5px;text-align:right">Ver plan →</div>
         </div>`;
-      }).join(''):`<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin préstamos registrados — añádelos en la pestaña <strong>Deudas</strong></div>`}
+      }).join(''):`<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin préstamos — añádelos en <strong>Deudas</strong></div>`}
+    </div>
+  </div>
+
+  <!-- Savings cards -->
+  <div>
+    <div class="section-label">Mis ahorros</div>
+    <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;-webkit-overflow-scrolling:touch">
+      ${S.savings.length?S.savings.map(s=>{
+        const pct=Math.min(Math.round((s.current/s.target)*100),100);
+        const debtMon=S.debts.reduce((a,d)=>a+d.monthly,0);
+        const recommended=Math.max(0,Math.round((c.totalIn-debtMon-c.realOut)*0.5));
+        const months=recommended>0&&s.current<s.target?Math.ceil((s.target-s.current)/recommended):null;
+        const arc=2*Math.PI*20;
+        const dash=arc*(pct/100);
+        return `<div style="flex-shrink:0;width:168px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;box-shadow:var(--shadow)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <svg width="40" height="40" viewBox="0 0 40 40" style="flex-shrink:0">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--surface2)" stroke-width="4"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="${s.color}" stroke-width="4"
+                stroke-dasharray="${dash.toFixed(1)} ${(arc-dash).toFixed(1)}"
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="${s.color}" font-family="JetBrains Mono,monospace">${pct}%</text>
+            </svg>
+            <div style="min-width:0;flex:1">
+              <div style="font-weight:700;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${pct>=100?'¡Meta! 🎉':months?'~'+months+' meses':'—'}</div>
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${s.color}">${fmt(s.current)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">de ${fmt(s.target)}</div>
+          <div style="background:var(--surface2);border-radius:4px;height:4px;margin-top:10px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${s.color};border-radius:4px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted2);margin-top:5px;text-align:right">Faltan ${fmt(Math.max(s.target-s.current,0))}</div>
+        </div>`;
+      }).join(''):`<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin metas — añádelas en <strong>Ahorros</strong></div>`}
     </div>
   </div>
 
@@ -1373,6 +1433,130 @@ window.addEventListener('beforeinstallprompt',e=>{
   document.getElementById('dismiss-install').onclick=()=>document.getElementById('install-bar').classList.remove('show');
 });
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ═══════════════════════════════════════════════════
+// AMORTIZATION MODAL
+// ═══════════════════════════════════════════════════
+window.closeAmort = ()=>{ document.getElementById('amort-modal').style.display='none'; };
+
+window.openAmort = function(id){
+  const d = S.debts.find(x=>x.id===id);
+  if(!d) return;
+  document.getElementById('amort-modal').style.display='block';
+
+  const paid = d.total - d.remaining;
+  const pct = Math.min(Math.round((paid/d.total)*100),100);
+  const months = d.monthly>0 ? Math.ceil(d.remaining/d.monthly) : 0;
+
+  document.getElementById('amort-title').textContent = d.name;
+  document.getElementById('amort-sub').textContent = pct+'% pagado · '+months+' meses restantes';
+
+  // Hero
+  document.getElementById('amort-hero').innerHTML = [
+    {l:'Pagado',   v:fmt(paid),        c:'var(--green)'},
+    {l:'Pendiente',v:fmt(d.remaining), c:'var(--red)'},
+    {l:'Cuota/mes',v:fmt(d.monthly),   c:'var(--orange)'},
+  ].map(x=>`
+    <div style="flex:1;background:var(--surface2);border-radius:12px;padding:12px 10px;text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:5px">${x.l}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${x.c}">${x.v}</div>
+    </div>`).join('');
+
+  // Schedule
+  const schedule=[];
+  let rem=d.remaining;
+  const cap=Math.min(months||360,360);
+  for(let m=1;m<=cap&&rem>0;m++){
+    rem=Math.max(rem-d.monthly,0);
+    schedule.push({m,rem});
+  }
+
+  // Draw chart
+  requestAnimationFrame(()=>{
+    const canvas=document.getElementById('amort-chart');
+    if(!canvas) return;
+    const dpr=window.devicePixelRatio||1;
+    const W=canvas.parentElement.clientWidth-0;
+    const H=170;
+    canvas.width=W*dpr; canvas.height=H*dpr;
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    const ctx=canvas.getContext('2d');
+    ctx.scale(dpr,dpr);
+
+    const isDark=document.body.classList.contains('dark');
+    const gc=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
+    const tc=isDark?'#8A7A6E':'#8A7A65';
+
+    // Sample to ~20 points
+    const step=Math.max(1,Math.floor(schedule.length/20));
+    const pts=[{m:0,rem:d.remaining},...schedule.filter((_,i)=>i%step===0||i===schedule.length-1)];
+
+    const padL=44,padR=10,padT=10,padB=22;
+    const cW=W-padL-padR, cH=H-padT-padB;
+    const maxR=d.remaining;
+
+    // Grid
+    ctx.strokeStyle=gc; ctx.lineWidth=1;
+    [0,.25,.5,.75,1].forEach(f=>{
+      const y=padT+cH*f;
+      ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+      ctx.fillStyle=tc;ctx.font='700 9px Sora,sans-serif';ctx.textAlign='right';
+      ctx.fillText(Math.round(maxR*(1-f)/1000)+'k€',padL-4,y+3);
+    });
+
+    // Area gradient
+    const grad=ctx.createLinearGradient(0,padT,0,padT+cH);
+    grad.addColorStop(0,d.color+'55');
+    grad.addColorStop(1,d.color+'08');
+
+    // Path
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const x=padL+cW*(i/(pts.length-1||1));
+      const y=padT+cH*(p.rem/maxR);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    const lastX=padL+cW*(( pts.length-1)/(pts.length-1||1));
+    const lastY=padT+cH*(pts[pts.length-1].rem/maxR);
+    ctx.lineTo(lastX,padT+cH); ctx.lineTo(padL,padT+cH);
+    ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const x=padL+cW*(i/(pts.length-1||1));
+      const y=padT+cH*(p.rem/maxR);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle=d.color; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+
+    // X labels (first, mid, last)
+    [[0,0],[Math.floor(pts.length/2),Math.floor(pts.length/2)],[pts.length-1,pts.length-1]].forEach(([pi])=>{
+      if(!pts[pi]) return;
+      const x=padL+cW*(pi/(pts.length-1||1));
+      ctx.fillStyle=tc; ctx.font='700 9px Sora,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('m'+pts[pi].m, x, H-padB+14);
+    });
+  });
+
+  // Table — first 12 payments
+  const rows=schedule.slice(0,12);
+  document.getElementById('amort-table').innerHTML=`
+    <div style="background:var(--surface2);border-radius:14px;overflow:hidden;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:10px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Mes</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;text-align:center">Cuota</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;text-align:right">Pendiente</div>
+      </div>
+      ${rows.map(r=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:11px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-weight:600;font-size:13px;color:var(--text2)">Mes ${r.m}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--orange);text-align:center">${fmt(d.monthly)}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${r.rem===0?'var(--green)':'var(--red)'};text-align:right">${fmt(r.rem)}</div>
+        </div>`).join('')}
+      ${schedule.length>12?`<div style="padding:12px 16px;text-align:center;font-size:12px;color:var(--muted)">... y ${schedule.length-12} meses más hasta liquidar la deuda</div>`:''}
+    </div>`;
+};
 
 // ═══════════════════════════════════════════════════
 // SWIPE BETWEEN TABS
