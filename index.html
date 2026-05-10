@@ -624,68 +624,41 @@ async function claude(prompt,max=400){
   return d.content?.[0]?.text?.trim()||'';
 }
 
-function aiCategory(desc){
-  return classifyByRules(desc);
-}
-
-// ── Rules-based classifier (no API needed) ──────────
-const RULES = [
-  // Nómina / ingresos
-  { cat:'Nómina',        k:['nomina','nómina','sueldo','salario','abono nomina','haberes','paga extra','payroll'] },
-  // Hipoteca / vivienda
-  { cat:'Hipoteca',      k:['hipoteca','mortgage','amortizacion hipot'] },
-  { cat:'Vivienda',      k:['alquiler','renta mensual','comunidad propietarios','ibi ','tasa basura','suministro','electricidad','iberdrola','endesa','naturgy','gas natural','agua potable','sevillana','canal isabel'] },
-  // Préstamos
-  { cat:'Préstamo',      k:['prestamo','préstamo','loan','financiacion','financiación','cuota prestamo','cofidis','cetelem','santander consumer','wivai','aplazame'] },
-  // Alimentación
-  { cat:'Alimentación',  k:['mercadona','lidl','aldi','carrefour','alcampo','hipercor','dia ','eroski','consum','supersol','ahorramas','froiz','condis','supermercado','alimentacion','alimentación','colmado','fruteria','verduleria','panaderia','carniceria','pescaderia','maskom','supeco'] },
-  // Restaurantes
-  { cat:'Restaurantes',  k:['restaurante','restaurant','cafeteria','cafetería','bar ','tapas','mcdonalds','mcdonald','burger king','kfc','telepizza','dominos','glovo','just eat','uber eats','deliveroo','pizzeria','hamburgueseria','cerveceria','taberna','mesón','meson','kebab','sushi','heladeria','chocolateria','pasteleria','panaderia cafe'] },
-  // Transporte
-  { cat:'Transporte',    k:['gasolina','gasolinera','bp ','repsol','cepsa','shell','galp','petronor','campsa','combustible','carburante','parking','aparcamiento','peaje','autopista','taxi','cabify','uber','blablacar','renfe','ave ','metro ','emt ','bus ','autobus','autobús','tranvia','tranvía','bicing','voi ','lime ','seat ','volkswagen','motor','taller','itv ','autoescuela','grua'] },
-  // Suscripciones
-  { cat:'Suscripciones', k:['netflix','spotify','hbo','disney','amazon prime','apple tv','dazn','filmin','rakuten','youtube premium','google one','icloud','microsoft 365','office 365','dropbox','adobe','antivirus','vpn','twitch','audible','kindle unlimited','suscripcion','subscripcion','cuota mensual app'] },
-  // Tecnología
-  { cat:'Tecnología',    k:['apple store','app store','google play','amazon.es','amazon.com','pccomponentes','mediamarkt','fnac','el corte ingles digital','phone house','orange','movistar','vodafone','jazztel','masmovil','yoigo','simyo','internet','fibra','movil','factura tel','klarna','aliexpress','ebay','wish '] },
-  // Salud
-  { cat:'Salud',         k:['farmacia','parafarmacia','doctor','médico','medico','clínica','clinica','hospital','dentista','optica','óptica','fisio','psicólogo','psicologo','laboratorio','analisis','radiologia','sanitas','adeslas','asisa','mutua','segurcaixa salud','dkv'] },
-  // Ocio
-  { cat:'Ocio',          k:['cine','cinema','teatro','museo','concierto','festival','entrada','ticketmaster','eventbrite','steam','playstation','xbox','nintendo','ps store','fnac','juego','loteria','once ','apuesta','bet365','codere','sport','gym ','gimnasio','fitness','decathlon','joma','nike','adidas','intersport','golf','padel','piscina','bowling','laser','karting'] },
-  // Ropa
-  { cat:'Ropa',          k:['zara','mango','h&m','bershka','pull and bear','stradivarius','massimo dutti','el corte ingles moda','primark','shein','asos','zalando','lefties','cortefiel','springfield','jack jones','calzedonia','intimissimi','el ganso','ropa','moda','tienda de ropa'] },
-  // Educación
-  { cat:'Educación',     k:['universidad','colegio','academia','formacion','formación','curso','master','máster','matricula','libreria','papeleria','material escolar','udemy','coursera','openwebinars','platzi'] },
-  // Viajes
-  { cat:'Viajes',        k:['vueling','iberia','ryanair','easyjet','wizz','aer lingus','hotel','airbnb','booking','trivago','expedia','kayak','aena','aeropuerto','maleta','equipaje','crucero','viaje','holiday','hostal','hostel','apartamento vacacional'] },
-  // Ahorro / inversiones
-  { cat:'Ahorro',        k:['transferencia ahorro','cuenta ahorro','deposito','depósito','fondo inversion','fondo de inversión','plan pensiones','indexa','myinvestor','finizens','roboadvisor'] },
-  { cat:'Inversión',     k:['degiro','interactive brokers','etoro','trading','bolsa','acciones','etf ','dividendo','broker'] },
-  // Seguros
-  { cat:'Otro',          k:['seguro','aseguradora','mapfre','axa','generali','allianz','mutua madrilena','occidente','linea directa','zurich','mútua'] },
-  // Transferencias internas (catch before Otro)
-  { cat:'Transferencia', k:['bizum','transferencia','traspaso','recarga','retirada','retiro','cajero','efectivo','atm ','pago de ','enviado a ','recibido de '] },
-  // Retiradas de efectivo → Transporte no, es genérico
-  { cat:'Otro',          k:['ret. efectivo','retirada efectivo','retiro efectivo'] },
-  // Freelance
-  { cat:'Freelance',     k:['factura','honorarios','autónomo','autonomo','freelance','pagos recibidos'] },
-];
-
-function classifyByRules(desc){
-  const d = desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  for(const rule of RULES){
-    for(const kw of rule.k){
-      const k = kw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      if(d.includes(k)) return rule.cat;
-    }
-  }
-  return 'Otro';
+async function aiCategory(desc){
+  try{
+    const cats=Object.keys(allCats()).join(',');
+    const r=await claude(`Categoria para "${desc}" entre: ${cats}. Responde SOLO el nombre exacto.`,30);
+    return allCats()[r]?r:'Otro';
+  }catch{return 'Otro'}
 }
 
 async function aiBatchCategories(items){
   if(!items.length) return {};
+  const cats=Object.keys(allCats()).join(', ');
+  // Process in chunks of 30 to avoid token limits
+  const chunkSize=30;
   const map={};
-  for(const item of items){
-    map[item.id] = classifyByRules(item.desc);
+  for(let i=0;i<items.length;i+=chunkSize){
+    const chunk=items.slice(i,i+chunkSize);
+    const lines=chunk.map((x,j)=>`${j+1}. ${x.desc}`).join('\n');
+    try{
+      const r=await claude(
+        `Eres un clasificador de movimientos bancarios. Para cada movimiento devuelve EXACTAMENTE "N. Categoría" en una línea.
+Categorías disponibles: ${cats}.
+Reglas: Hipoteca/alquiler→Vivienda, nómina/sueldo→Nómina, supermercado/mercadona/lidl/aldi/carrefour→Alimentación, gasolina/parking/peaje/taxi/uber→Transporte, netflix/spotify/amazon prime→Suscripciones, restaurante/bar/cafetería/mcdonalds→Restaurantes, farmacia/médico→Salud, préstamo/cuota→Préstamo, bizum recibido/transferencia recibida→Transferencia.
+Movimientos:
+${lines}`,
+        Math.min(chunk.length*15+100, 500)
+      );
+      for(const line of r.split('\n')){
+        const m=line.match(/^(\d+)[.)\s]+(.+)$/);
+        if(m){
+          const idx=parseInt(m[1])-1;
+          const cat=m[2].trim().replace(/[.,;]$/,'');
+          if(chunk[idx]&&allCats()[cat]) map[chunk[idx].id]=cat;
+        }
+      }
+    }catch(e){console.warn('Batch cat error:',e);}
   }
   return map;
 }
@@ -773,11 +746,11 @@ async function handleImport(file,source){
   let parsed=result.rows;
   if(!parsed.length){toast('⚠️ No se encontraron movimientos');return;}
   if(result.realBalance!==null)S.realBalance[source]=result.realBalance;
-  toast(`⏳ Procesando ${parsed.length} movimientos...`);
+  toast(`⏳ Clasificando ${parsed.length} movimientos...`);
   const hasRealData=S.movements.some(m=>m.source==='bbva'||m.source==='revolut');
   if(!hasRealData)S.movements=[];
-  const cats=aiBatchCategories(parsed.map(m=>({id:m.id,desc:m.desc})));
-  parsed=parsed.map(m=>({...m,category:(await cats)[m.id]||'Otro'}));
+  const cats=await aiBatchCategories(parsed.map(m=>({id:m.id,desc:m.desc})));
+  parsed=parsed.map(m=>({...m,category:cats[m.id]||'Otro'}));
   const existing=new Set(S.movements.map(m=>`${m.desc}|${m.date}|${m.amount}`));
   const newOnes=parsed.filter(m=>!existing.has(`${m.desc}|${m.date}|${m.amount}`));
   S.movements=[...newOnes,...S.movements];
