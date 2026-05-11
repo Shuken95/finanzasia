@@ -495,8 +495,7 @@ const BASE_CATEGORIES={
   'Alimentación':'🛒','Transporte':'🚗','Vivienda':'🏠','Salud':'💊','Ocio':'🎬',
   'Ropa':'👔','Educación':'📚','Tecnología':'💻','Restaurantes':'🍽️','Viajes':'✈️',
   'Ahorro':'💰','Nómina':'💼','Freelance':'🔧','Inversión':'📈','Préstamo':'🏦',
-  'Hipoteca':'🏡','Suscripciones':'📱','Transferencia':'↔️',
-  'Mascotas':'🐾','Familia':'👨‍👩‍👧','Seguros':'🛡️','Impuestos':'🏛️','Otro':'📦'
+  'Hipoteca':'🏡','Suscripciones':'📱','Transferencia':'↔️','Otro':'📦'
 };
 
 const SOURCES={
@@ -510,11 +509,14 @@ const PRIO_COLOR={alta:'var(--red)',media:'var(--orange)',baja:'var(--green)'};
 // ═══════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════
+let selectedCategory=null;
+
 let S=loadState()||{
   tab:'Resumen', filter:'all', dark:false, currency:'EUR',
   quickCat:'Alimentación', analysis:null, analysisLoading:false, analysisError:'',
   realBalance:{bbva:null,revolut:null},
   customCats:{},
+  learnedCategories:{},
   movements:[
     {id:'m1',desc:'Nómina mayo',amount:2800,type:'income',category:'Nómina',date:'2026-05-01',source:'bbva'},
     {id:'m2',desc:'Hipoteca',amount:720,type:'expense',category:'Hipoteca',date:'2026-05-02',source:'bbva'},
@@ -560,6 +562,80 @@ function applyDark(){
   if(dm) dm.checked=!!S.dark;
 }
 function toggleDark(){S.dark=!S.dark;applyDark();saveState()}
+
+
+function normalizeText(t=''){
+  return t
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^\w\s]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+const CATEGORY_KEYWORDS={
+  'Alimentación':['mercadona','carrefour','lidl','aldi','dia','hiperber','consum','eroski','alcampo','supermercado','petroprix','repsol','cepsa','bp','shell','snacks','vending','glovo','uber eats'],
+  'Transporte':['petroprix','repsol','cepsa','bp','shell','gasolina','gasolinera','parking','uber','cabify','bolt','renfe','metro'],
+  'Restaurantes':['mcdonald','burger king','kfc','goiko','telepizza','dominos','just eat','glovo','uber eats','restaurant','restaurante','cafeteria','bar','cafe'],
+  'Suscripciones':['netflix','spotify','amazon prime','hbo','disney','youtube premium','icloud','google one','chatgpt','openai'],
+  'Tecnología':['amazon','pccomponentes','mediamarkt','apple','xiaomi','samsung','steam'],
+  'Vivienda':['alquiler','hipoteca','ikea','leroy merlin','endesa','iberdrola','movistar','vodafone','orange'],
+  'Salud':['farmacia','clinica','hospital','dentista','fisio'],
+  'Ropa':['zara','bershka','nike','adidas','primark'],
+  'Viajes':['airbnb','booking','ryanair','iberia','hotel'],
+  'Nómina':['nomina','salary','payroll','sueldo'],
+  'Préstamo':['prestamo','loan','credito','cuota'],
+  'Transferencia':['bizum','transferencia','traspaso']
+};
+
+function keywordCategory(desc=''){
+  const txt=normalizeText(desc);
+
+  if(S.learnedCategories){
+    for(const [k,v] of Object.entries(S.learnedCategories)){
+      if(txt.includes(k)) return v;
+    }
+  }
+
+  for(const [category,words] of Object.entries(CATEGORY_KEYWORDS)){
+    for(const word of words){
+      if(txt.includes(word)) return category;
+    }
+  }
+
+  return null;
+}
+
+function openCategory(category){
+  selectedCategory=category;
+  S.tab='Movimientos';
+  render();
+}
+
+function clearCategoryFilter(){
+  selectedCategory=null;
+  render();
+}
+
+function updateMovementCategory(id,newCategory){
+  const mov=S.movements.find(m=>m.id===id);
+
+  if(!mov) return;
+
+  mov.category=newCategory;
+
+  if(!S.learnedCategories){
+    S.learnedCategories={};
+  }
+
+  S.learnedCategories[normalizeText(mov.desc).slice(0,40)]=newCategory;
+
+  saveState();
+  render();
+
+  toast('✅ Categoría actualizada');
+}
 
 // ═══════════════════════════════════════════════════
 // COMPUTED
@@ -625,93 +701,88 @@ async function claude(prompt,max=400){
   return d.content?.[0]?.text?.trim()||'';
 }
 
-// ── Rules-based classifier (no API needed) ──────────
-const RULES = [
-  // ── Nómina ────────────────────────────────────────
-  { cat:'Nómina', k:['nomina','nómina','sueldo','salario','abono nomina','haberes','paga extra','payroll','remuneracion','remuneración','mensualidad empresa','ingreso empresa','transferencia empresa','pago empresa','adelanto nomina','retribución','paga mensual','abono mensual'] },
-  // ── Hipoteca ──────────────────────────────────────
-  { cat:'Hipoteca', k:['hipoteca','mortgage','amortizacion hipot','hipotecario','pago hipoteca','cuota hipoteca','recibo hipoteca','prestamo hipotecario'] },
-  // ── Vivienda ──────────────────────────────────────
-  { cat:'Vivienda', k:['alquiler','renta mensual','comunidad propietarios','ibi ','tasa basura','suministro','electricidad','iberdrola','endesa','naturgy','gas natural','agua potable','sevillana','canal isabel','aguas de ','factura luz','factura gas','factura agua','comunidad vecinos','administrador finca','cuota comunidad','holaluz','octopus energy','fenie energía','plenitude','agbar','emaya','emasesa','aqualia','global omnium','mantenimiento hogar','leroy merlin','ikea','bricor','aki bricolaje','bricomart','bauhaus','reparacion hogar','fontanero','electricista','cerrajero','mudanza','trastero'] },
-  // ── Préstamos ─────────────────────────────────────
-  { cat:'Préstamo', k:['prestamo','préstamo','loan','financiacion','financiación','cuota prestamo','cofidis','cetelem','santander consumer','wivai','aplazame','younited','vivus','ferratum','creditea','revolving','pago aplazado','financiación coche','leasing','renting auto','cuota financiacion','recibo prestamo'] },
-  // ── Alimentación ──────────────────────────────────
-  { cat:'Alimentación', k:['mercadona','lidl','aldi','carrefour','alcampo','hipercor','dia ','eroski','consum','supersol','ahorramas','froiz','condis','supermercado','alimentacion','alimentación','colmado','fruteria','verduleria','panaderia','carniceria','pescaderia','maskom','supeco','covirán','coviran','spar ','el árbol','simply','bon preu','caprabo','masymas','unide','plusfresc','cash and carry','makro','metro cash','ultramarinos','clarel','dia%','supermercado dia','aldi','lidl','congelados','conservas','hipercor'] },
-  // ── Restaurantes ──────────────────────────────────
-  { cat:'Restaurantes', k:['restaurante','restaurant','cafeteria','cafetería','bar ','tapas','mcdonalds','mcdonald','burger king','kfc','telepizza','dominos','glovo','just eat','uber eats','deliveroo','pizzeria','hamburgueseria','cerveceria','taberna','mesón','meson','kebab','sushi','heladeria','chocolateria','pasteleria','panaderia cafe','starbucks','dunkin','100 montaditos','vips','la tagliatella','grosso','goiko','bacoa','five guys','udon','ramen','poke','churreria','granja','asador','marisqueria','cocteleria','chiringuito','food truck','brunch','justeat','bolt food','takeaway','comida rapida','fast food','delivery comida'] },
-  // ── Transporte ────────────────────────────────────
-  { cat:'Transporte', k:['gasolina','gasolinera','bp ','repsol','cepsa','shell','galp','petronor','campsa','combustible','carburante','parking','aparcamiento','peaje','autopista','taxi','cabify','uber','blablacar','renfe','ave ','metro ','emt ','bus ','autobus','autobús','tranvia','tranvía','bicing','voi ','lime ','seat ','volkswagen','motor','taller','itv ','autoescuela','grua','cercanias','cercanías','fgc ','tram ','bono bus','bono metro','abono transporte','multa tráfico','seguro coche','seguro auto','seguro moto','linea directa auto','share now','emov','acciona moto','patinete','cooltra','yego','hertz','avis','europcar','sixt','goldcar','alquiler coche','rent a car','zity','bmw','mercedes','audi','opel','ford ','peugeot','renault','toyota','neumaticos','revisión coche','lavado coche','gasolinera'] },
-  // ── Suscripciones ─────────────────────────────────
-  { cat:'Suscripciones', k:['netflix','spotify','hbo','disney','amazon prime','apple tv','dazn','filmin','rakuten','youtube premium','google one','icloud','microsoft 365','office 365','dropbox','adobe','antivirus','vpn','twitch','audible','kindle unlimited','suscripcion','subscripcion','cuota mensual app','apple music','amazon music','tidal','deezer','crunchyroll','apple arcade','xbox game pass','playstation plus','ps plus','nintendo online','ea play','paramount','discovery plus','apple one','renovacion plan','suscripción anual','renovación auto','canva','notion','evernote','1password','dashlane','grammarly','duolingo plus','babbel','perlego','scribd','linkedin premium','chatgpt plus','claude pro','midjourney','figma'] },
-  // ── Tecnología ────────────────────────────────────
-  { cat:'Tecnología', k:['apple store','app store','google play','amazon.es','amazon.com','pccomponentes','mediamarkt','fnac','el corte ingles digital','phone house','orange','movistar','vodafone','jazztel','masmovil','yoigo','simyo','internet','fibra','movil','factura tel','klarna','aliexpress','ebay','wish ','back market','worten','coolmod','ldlc','samsung','xiaomi','huawei','motorola','oneplus','teclado','ratón','monitor','auriculares','altavoces','router','cargador','bateria externa','ssd','hdd','disco duro','memoria ram','impresora','tinta impresora','webcam','microfono','amazon web','google cloud','azure','github','digitalocean','hosting','registro dominio'] },
-  // ── Salud ─────────────────────────────────────────
-  { cat:'Salud', k:['farmacia','parafarmacia','doctor','médico','medico','clínica','clinica','hospital','dentista','optica','óptica','fisio','psicólogo','psicologo','laboratorio','analisis','radiologia','sanitas','adeslas','asisa','mutua','segurcaixa salud','dkv','cigna','axa salud','allianz salud','consulta medica','urgencias','rehabilitación','logopeda','nutricionista','dietista','terapeuta','osteopata','acupuntura','herbolario','vitaminas','suplementos','ortopedia','gafas','lentillas','audifono','centro salud','ambulatorio','vithas','hm hospitales','quironsalud','imed','nisa','test covid','pcr ','vacuna','anticonceptivos','parafarmacia','crema medica','vendas','tiritas'] },
-  // ── Ocio ──────────────────────────────────────────
-  { cat:'Ocio', k:['cine','cinema','teatro','museo','concierto','festival','entrada','ticketmaster','eventbrite','steam','playstation','xbox','nintendo','ps store','juego','loteria','once ','apuesta','bet365','codere','sport','gym ','gimnasio','fitness','decathlon','joma','nike','adidas','intersport','golf','padel','piscina','bowling','laser','karting','escape room','paintball','librerias','libreria','comics','manga','libros','parque atracciones','portaventura','zoo ','acuario','crossfit','pilates','yoga','boxeo','natacion','tenis','squash','futbol','ciclismo','running','maratón','jugueteria','juguetes','lego','playmobil','suscripcion gaming','in-app purchase','compra juego','spotify games','steam juego'] },
-  // ── Ropa ──────────────────────────────────────────
-  { cat:'Ropa', k:['zara','mango','h&m','bershka','pull and bear','stradivarius','massimo dutti','el corte ingles moda','primark','shein','asos','zalando','lefties','cortefiel','springfield','jack jones','calzedonia','intimissimi','el ganso','ropa','moda','tienda de ropa','c&a','vans','converse','timberland','puma','reebok','new balance','asics','salomon','columbia','north face','patagonia','desigual','guess ','tommy','calvin klein','boss ','lacoste','ralph lauren','levi','pepe jeans','outlet ropa','rebajas ropa','zapatillas','zapatos','botas','sandalias','calcetines','ropa interior','abrigo','chaqueta','jersey','sudadera','camiseta','perfumeria','douglas','sephora','notino','kiko','mac cosmetics','charlotte tilbury','colonia','perfume','maquillaje','peluqueria','barberia','estetica','manicura','depilacion'] },
-  // ── Educación ─────────────────────────────────────
-  { cat:'Educación', k:['universidad','colegio','academia','formacion','formación','curso','master','máster','matricula','libreria','papeleria','material escolar','udemy','coursera','openwebinars','platzi','domestika','edx','skillshare','euroinnova','unir ','uoc ','uned ','ie business','master online','cuota guarderia','guardería','colegio privado','cuota escolar','actividades extraescolares','comedor escolar','uniforme escolar','libros texto','ingles','inglés','academia idiomas','british council','berlitz','goethe institut','clases particulares','tutor','refuerzo escolar','oposiciones'] },
-  // ── Viajes ────────────────────────────────────────
-  { cat:'Viajes', k:['vueling','iberia','ryanair','easyjet','wizz','aer lingus','hotel','airbnb','booking','trivago','expedia','kayak','aena','aeropuerto','maleta','equipaje','crucero','viaje','holiday','hostal','hostel','apartamento vacacional','jet2','norwegian','binter','air europa','volotea','british airways','lufthansa','air france','klm ','tap ','emirates','qatar airways','hostelworld','hotusa','ac hoteles','melia','nh hoteles','barceló','riu ','iberostar','paradores','rusticae','camping','glamping','trasmediterranea','balearia','ouigo','iryo ','tren hotel','seguro viaje','excursion','tour ','bus turistico','suplemento maleta','equipaje adicional','tasa turistica'] },
-  // ── Ahorro ────────────────────────────────────────
-  { cat:'Ahorro', k:['transferencia ahorro','cuenta ahorro','deposito','depósito','fondo inversion','fondo de inversión','plan pensiones','indexa','myinvestor','finizens','roboadvisor','ing ahorro','cuenta naranja','openbank ahorro','raisin','evo ahorro'] },
-  // ── Inversión ─────────────────────────────────────
-  { cat:'Inversión', k:['degiro','interactive brokers','etoro','trading','bolsa','acciones','etf ','dividendo','broker','traderepublic','trade republic','scalable capital','lightyear','crowdlending','housers','urbanitae','bitcoin','ethereum','crypto','binance','coinbase','kraken ','bybit','criptomoneda','token ','nft ','staking'] },
-  // ── Mascotas ──────────────────────────────────────
-  { cat:'Mascotas', k:['veterinario','veterinaria','clinica veterinaria','mascota','pienso','royal canin','hills ','purina','advance pet','comida perro','comida gato','snacks perro','collar perro','correa','arnés','ropa mascota','cama mascota','transportin','residencia canina','guarderia canina','peluqueria canina','adiestramiento','vacuna perro','desparasitacion','chip mascota','seguro mascota','zooplus','kiwoko','puppis','mascotalia','tienda animales'] },
-  // ── Familia ───────────────────────────────────────
-  { cat:'Familia', k:['guarderia','guardería','jardin infancia','centro infantil','ludoteca','actividad infantil','extraescolar','comedor colegio','ropa niño','jugueteria','pañales','toallitas','papilla','potitos','leche infantil','chicco','mothercare','imaginarium','toys r us','toy planet','cumpleaños','fiesta infantil','animacion infantil','regalo niños','mochila cole','babero','silla bebe','cochecito','portabebé'] },
-  // ── Seguros ───────────────────────────────────────
-  { cat:'Seguros', k:['seguro','aseguradora','mapfre','axa','generali','allianz','mutua madrilena','occidente','linea directa','zurich','mútua','reale','catalana occidente','caser','groupama','helvetia','plus ultra','pelayo','prima seguro','recibo seguro','póliza','poliza','seguro vida','seguro dental','seguro viaje','seguro mascotas','seguro bici','seguro electronica','seguro alquiler','asitur'] },
-  // ── Impuestos ─────────────────────────────────────
-  { cat:'Impuestos', k:['hacienda','agencia tributaria','aeat ','irpf','declaracion renta','seguridad social','cuota autonomo','cuota autónomo','impuesto','tributo','tasa municipal','multa ','sancion','sanción','recibo municipal','plusvalia','ibi','ivtm','contribucion','modelo 130','modelo 303','modelo 111','notaria','registro propiedad','gastos escritura','plusvalía municipal','tasas universitarias'] },
-  // ── Transferencias ────────────────────────────────
-  { cat:'Transferencia', k:['bizum','transferencia','traspaso','recarga','retirada','retiro','cajero','efectivo','atm ','pago de ','enviado a ','recibido de ','ret. efectivo','retirada efectivo','retiro efectivo','envio dinero','western union','moneygram','remesa','paypal transfer','wise ','transferwise','revolut transfer','pago p2p'] },
-  // ── Freelance ─────────────────────────────────────
-  { cat:'Freelance', k:['factura','honorarios','autónomo','autonomo','freelance','pagos recibidos','ingreso freelance','cobro cliente','consulting','consultoria','diseño web','desarrollo web','programacion','marketing digital'] },
-];
-
-function classifyByRules(desc){
-  const d = desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  for(const rule of RULES){
-    for(const kw of rule.k){
-      const k = kw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      if(d.includes(k)) return rule.cat;
-    }
-  }
-  return 'Otro';
+async function aiCategory(desc){
+  try{
+    const cats=Object.keys(allCats()).join(',');
+    const r=await claude(`Categoria para "${desc}" entre: ${cats}. Responde SOLO el nombre exacto.`,30);
+    return allCats()[r]?r:'Otro';
+  }catch{return 'Otro'}
 }
 
-function aiCategory(desc){
-  return classifyByRules(desc);
-}
 
 async function aiBatchCategories(items){
-  if(!items.length) return {};
-  const map={};
-  for(const item of items){
-    map[item.id] = classifyByRules(item.desc);
-  }
-  return map;
-}
 
-async function runAnalysis(){
-  const c=computed();
-  const debtTotal=S.debts.reduce((s,d)=>s+d.remaining,0);
-  const debtMon=S.debts.reduce((s,d)=>s+d.monthly,0);
-  const ahorros=S.savings.reduce((s,v)=>s+v.current,0);
-  const topG=Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>k+':'+Math.round(v)+'eu').join(',');
-  const deudasStr=S.debts.map(d=>d.name+':'+Math.round(d.remaining)+'eu/'+Math.round(d.monthly)+'mes').join(',');
-  const prompt=`Eres asesor financiero. Responde SOLO con JSON en una linea sin markdown:
-{"p":<0-100>,"c":"<green|orange|red>","r":"<resumen 1 frase>","f":["<punto fuerte>","<punto fuerte>"],"m":["<mejora>","<mejora>"],"pl":[{"t":"<titulo>","d":"<detalle 1 frase>","pr":"<alta|media|baja>"},{"t":"<t>","d":"<d>","pr":"<p>"},{"t":"<t>","d":"<d>","pr":"<p>"}],"e":"<estrategia deudas 1 frase>","a":<ahorro recomendado mes>}
-Datos: ingresos=${Math.round(c.totalIn)}eu gastos=${Math.round(c.realOut)}eu deuda=${Math.round(debtTotal)}eu cuotas=${Math.round(debtMon)}eu/mes ahorros=${Math.round(ahorros)}eu gastos_top=${topG} deudas=${deudasStr}`;
-  const raw=await claude(prompt,350);
-  const clean=raw.replace(/```json|```/g,'').trim();
-  let short;
-  try{short=JSON.parse(clean);}catch(e){throw new Error('JSON invalido: '+clean.slice(0,200));}
-  return{puntuacion:short.p,color:short.c,resumen:short.r,puntos_fuertes:short.f,areas_mejora:short.m,plan:(short.pl||[]).map(x=>({titulo:x.t,detalle:x.d,prioridad:x.pr})),estrategia_deuda:short.e,ahorro_recomendado_mes:short.a};
+  if(!items.length) return {};
+
+  const map={};
+  const unresolved=[];
+
+  for(const item of items){
+
+    const localCat=keywordCategory(item.desc);
+
+    if(localCat){
+      map[item.id]=localCat;
+    }else{
+      unresolved.push(item);
+    }
+  }
+
+  if(!unresolved.length){
+    return map;
+  }
+
+  const cats=Object.keys(allCats()).join(', ');
+  const chunkSize=20;
+
+  for(let i=0;i<unresolved.length;i+=chunkSize){
+
+    const chunk=unresolved.slice(i,i+chunkSize);
+    const lines=chunk.map((x,j)=>`${j+1}. ${x.desc}`).join('\n');
+
+    try{
+
+      const r=await claude(
+`Clasifica movimientos bancarios españoles.
+
+Devuelve SOLO:
+N. Categoria
+
+Categorias:
+${cats}
+
+Movimientos:
+${lines}`,
+      500
+      );
+
+      for(const line of r.split('\n')){
+
+        const m=line.match(/^(\\d+)[.)\\s]+(.+)$/);
+
+        if(m){
+
+          const idx=parseInt(m[1])-1;
+          const cat=m[2].trim();
+
+          if(chunk[idx]&&allCats()[cat]){
+            map[chunk[idx].id]=cat;
+          }
+        }
+      }
+
+    }catch(e){
+      console.warn(e);
+    }
+  }
+
+  for(const item of items){
+    if(!map[item.id]){
+      map[item.id]='Otro';
+    }
+  }
+
+  return map;
 }
 
 // ═══════════════════════════════════════════════════
@@ -780,10 +851,10 @@ async function handleImport(file,source){
   let parsed=result.rows;
   if(!parsed.length){toast('⚠️ No se encontraron movimientos');return;}
   if(result.realBalance!==null)S.realBalance[source]=result.realBalance;
-  toast(`⏳ Procesando ${parsed.length} movimientos...`);
+  toast(`⏳ Clasificando ${parsed.length} movimientos...`);
   const hasRealData=S.movements.some(m=>m.source==='bbva'||m.source==='revolut');
   if(!hasRealData)S.movements=[];
-  const cats=aiBatchCategories(parsed.map(m=>({id:m.id,desc:m.desc})));
+  const cats=await aiBatchCategories(parsed.map(m=>({id:m.id,desc:m.desc})));
   parsed=parsed.map(m=>({...m,category:cats[m.id]||'Otro'}));
   const existing=new Set(S.movements.map(m=>`${m.desc}|${m.date}|${m.amount}`));
   const newOnes=parsed.filter(m=>!existing.has(`${m.desc}|${m.date}|${m.amount}`));
@@ -874,116 +945,6 @@ function renderContent(){
 }
 
 // ── RESUMEN ────────────────────────────────────────
-function buildCatRows(sorted, c){
-  if(!sorted.length) return '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin gastos aún — importa tus CSVs</div></div>';
-  return sorted.map(function(pair){
-    var cat=pair[0], amt=pair[1];
-    var budget=S.budgets[cat]||null;
-    var pctOfTotal=c.realOut>0?Math.min((amt/c.realOut)*100,100):0;
-    var pctOfBudget=budget?Math.min((amt/budget)*100,100):null;
-    var over=budget&&amt>budget;
-    var barColor=over?'var(--red)':budget?'var(--green)':'var(--orange)';
-    var barPct=budget?pctOfBudget:pctOfTotal;
-    var count=S.movements.filter(function(m){return m.category===cat&&m.type==='expense'&&!isInterAccount(m);}).length;
-    var amtStr=budget
-      ? '<span style="font-size:11px;color:var(--muted);font-family:JetBrains Mono,monospace">'+fmt(amt)+'/'+fmt(budget)+'</span>'
-      : '<span style="font-size:11px;color:var(--orange);font-family:JetBrains Mono,monospace">'+fmt(amt)+'</span>';
-    var overBadge=over?'<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);border-radius:5px;padding:1px 6px">+'+fmt(amt-budget)+'</span>':'';
-    var budgetRow=budget
-      ? '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px"><span>'+Math.round(pctOfBudget)+'% del presupuesto</span><span style="color:'+(over?'var(--red)':'var(--muted)')+';">'+(over?'Excedido':'Queda '+fmt(budget-amt))+'</span></div>'
-      : '';
-    var safeCat=cat.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div class="cat-row" onclick="openCatDetail(\''+safeCat+'\')" style="cursor:pointer;border-radius:10px;padding:6px 8px;margin:-6px -8px 5px;transition:background .15s;-webkit-tap-highlight-color:transparent" onmouseenter="this.style.background=\'var(--surface2)\'" onmouseleave="this.style.background=\'\'">'
-      +'<div class="cat-header">'
-        +'<div style="display:flex;align-items:center;gap:6px">'
-          +'<span class="cat-name">'+(allCats()[cat]||'📦')+' '+cat+'</span>'
-          +'<span style="font-size:10px;color:var(--muted2);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:1px 6px;font-weight:600">'+count+'</span>'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px">'+overBadge+amtStr+'<span style="color:var(--muted2);font-size:13px;margin-left:2px">›</span></div>'
-      +'</div>'
-      +'<div class="prog-track"><div class="prog-fill" style="width:'+barPct+'%;background:'+barColor+'"></div></div>'
-      +budgetRow
-    +'</div>';
-  }).join('');
-}
-
-window.openCatDetail=function(cat){
-  const emoji=allCats()[cat]||'📦';
-  const movs=S.movements
-    .filter(function(m){return m.category===cat&&m.type==='expense'&&!isInterAccount(m);})
-    .sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-  const total=movs.reduce(function(s,m){return s+m.amount;},0);
-  const budget=S.budgets[cat]||null;
-  const over=budget&&total>budget;
-
-  const movsHTML=movs.length?movs.map(function(m){
-    const src=SOURCES[m.source]||SOURCES.manual;
-    return '<div class="mov-item" style="margin-bottom:8px">'
-      +'<div class="mov-icon" style="background:var(--red-bg)">'+emoji+'</div>'
-      +'<div class="mov-info">'
-        +'<div class="mov-desc">'+m.desc+'</div>'
-        +'<div class="mov-meta">'
-          +'<span>'+m.date+'</span><span>·</span>'
-          +'<span class="src-dot" style="background:'+src.dot+'"></span>'
-          +'<span>'+src.label+'</span>'
-        +'</div>'
-      +'</div>'
-      +'<div class="mov-amount" style="color:var(--red)">-'+fmt(m.amount)+'</div>'
-    +'</div>';
-  }).join('')
-  :'<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin movimientos en esta categoría</div></div>';
-
-  const budgetBar=budget
-    ?'<div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:14px">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-          +'<span style="font-size:12px;font-weight:600;color:var(--muted)">Presupuesto mensual</span>'
-          +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:'+(over?'var(--red)':'var(--green)')+'">'+fmt(total)+' / '+fmt(budget)+'</span>'
-        +'</div>'
-        +'<div class="prog-track"><div class="prog-fill" style="width:'+Math.min((total/budget)*100,100)+'%;background:'+(over?'var(--red)':'var(--green)')+'"></div></div>'
-        +'<div style="font-size:11px;color:'+(over?'var(--red)':'var(--muted)')+';margin-top:5px;text-align:right">'+(over?'⚠️ Excedido en '+fmt(total-budget):'Queda '+fmt(budget-total))+'</div>'
-      +'</div>'
-    :'<div style="background:var(--surface2);border-radius:12px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)">Sin presupuesto — <button onclick="window.closeCatDetail();setTab(\'Presupuesto\')" style="background:none;border:none;color:var(--orange);font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">Añadir →</button></div>';
-
-  const el=document.getElementById('cat-detail-modal');
-  el.innerHTML=
-    '<div class="modal-overlay" onclick="window.closeCatDetail()">'
-      +'<div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:88dvh;display:flex;flex-direction:column;overflow:hidden">'
-        +'<div style="padding:20px 20px 14px;flex-shrink:0">'
-          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
-            +'<div style="display:flex;align-items:center;gap:10px">'
-              +'<div style="width:42px;height:42px;border-radius:13px;background:var(--orange-bg);border:1px solid rgba(204,120,92,.2);display:flex;align-items:center;justify-content:center;font-size:20px">'+emoji+'</div>'
-              +'<div>'
-                +'<div style="font-weight:800;font-size:17px;color:var(--text)">'+cat+'</div>'
-                +'<div style="font-size:11px;color:var(--muted);margin-top:1px">'+movs.length+' movimiento'+(movs.length!==1?'s':'')+'</div>'
-              +'</div>'
-            +'</div>'
-            +'<button onclick="window.closeCatDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:14px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center">✕</button>'
-          +'</div>'
-          +'<div style="display:flex;gap:9px">'
-            +'<div style="flex:1;background:var(--red-bg);border:1px solid rgba(192,57,43,.15);border-radius:12px;padding:12px 14px">'
-              +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px">Total gastado</div>'
-              +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:20px;font-weight:700;color:var(--red)">'+fmt(total)+'</div>'
-            +'</div>'
-            +'<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px">'
-              +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px">Media por mov.</div>'
-              +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:20px;font-weight:700;color:var(--text)">'+(movs.length?fmt(Math.round(total/movs.length)):'—')+'</div>'
-            +'</div>'
-          +'</div>'
-        +'</div>'
-        +'<div style="overflow-y:auto;padding:0 20px calc(var(--safe-bottom)+24px)">'
-          +budgetBar
-          +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Movimientos</div>'
-          +movsHTML
-        +'</div>'
-      +'</div>'
-    +'</div>';
-  el.style.display='block';
-};
-
-window.closeCatDetail=function(){
-  document.getElementById('cat-detail-modal').style.display='none';
-};
-
 function rResumen(){
   const c=computed();
   const bbvaBalance=S.realBalance.bbva!==null?S.realBalance.bbva:(c.bySrc.bbva.in-c.bySrc.bbva.out);
@@ -1097,8 +1058,31 @@ function rResumen(){
       <div class="card-title" style="margin:0">📊 Gastos por categoría</div>
       <button onclick="setTab('Presupuesto')" style="font-size:11px;font-weight:700;color:var(--orange);background:none;border:none;cursor:pointer;padding:0">Ver todo →</button>
     </div>
-    ${buildCatRows(sorted,c)}
-    ${!Object.keys(S.budgets).length?'<div style="margin-top:10px;padding:10px 12px;background:var(--orange-bg);border-radius:10px;font-size:12px;color:var(--orange);font-weight:600">💡 Define presupuestos en Presupuesto para ver límites aquí</div>':''}
+    ${sorted.length?sorted.map(([cat,amt])=>{
+      const budget=S.budgets[cat]||null;
+      const pctOfTotal=c.realOut>0?Math.min((amt/c.realOut)*100,100):0;
+      const pctOfBudget=budget?Math.min((amt/budget)*100,100):null;
+      const overBudget=budget&&amt>budget;
+      const barColor=overBudget?'var(--red)':budget?'var(--green)':'var(--orange)';
+      return `<div class="cat-row" onclick="openCategory(\'${cat}\')" style="cursor:pointer;background:var(--surface2);padding:10px;border-radius:12px">
+        <div class="cat-header">
+          <span class="cat-name">${allCats()[cat]||'📦'} ${cat}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${overBudget?`<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);border-radius:5px;padding:1px 6px">+${fmt(amt-budget)}</span>`:''}
+            ${budget?`<span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${fmt(amt)}/${fmt(budget)}</span>`
+                    :`<span style="font-size:11px;color:var(--orange);font-family:'JetBrains Mono',monospace">${fmt(amt)}</span>`}
+          </div>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill" style="width:${budget?pctOfBudget:pctOfTotal}%;background:${barColor}"></div>
+        </div>
+        ${budget?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+          <span>${Math.round(pctOfBudget)}% del presupuesto</span>
+          <span>${overBudget?'<span style=\'color:var(--red)\'>Excedido</span>':'Queda '+fmt(budget-amt)}</span>
+        </div>`:''}
+      </div>`;
+    }).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin gastos aún — importa tus CSVs</div></div>`}
+    ${!Object.keys(S.budgets).length?`<div style="margin-top:10px;padding:10px 12px;background:var(--orange-bg);border-radius:10px;font-size:12px;color:var(--orange);font-weight:600">💡 Define presupuestos en la pestaña <strong>Presupuesto</strong> para ver límites aquí</div>`:''}
   </div>
 
 `;
@@ -1934,8 +1918,5 @@ window.openAmort = function(id){
 applyDark();
 render();
 </script>
-<!-- Category detail modal -->
-<div id="cat-detail-modal" style="display:none;position:fixed;inset:0;z-index:250"></div>
-
 </body>
 </html>
