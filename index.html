@@ -948,8 +948,8 @@ function renderTabs(){
 
 function renderContent(){
   const map={
-    'Resumen':rResumen,'Importar CSV':rImport,'Movimientos':rMovimientos,
-    'Presupuesto':rPresupuesto,'Ahorros':rAhorros,'Deudas':rDeudas,'Análisis IA':rAnalysis
+    'Resumen':rResumen,'Movimientos':rMovimientos,
+    'Presupuesto':rPresupuesto,'Análisis IA':rAnalysis
   };
   document.getElementById('content').innerHTML=(map[S.tab]||rResumen)();
   bindEvents();
@@ -1261,9 +1261,12 @@ function rMovimientos(){
       </div>
       <div class="mov-info">
         <div class="mov-desc">${m.desc}</div>
-        <div class="mov-meta">
+        <div class="mov-meta" style="flex-wrap:wrap;gap:4px">
           <span class="src-dot" style="background:${SOURCES[m.source]?.dot||'#8A7A65'}"></span>
-          ${m.category} · ${m.date}
+          <select onchange="changeCatMovement('${m.id}',this.value)" style="background:transparent;border:none;color:var(--muted);font-size:11px;font-family:inherit;padding:0;cursor:pointer;outline:none;max-width:120px">
+            ${Object.entries(allCats()).map(([c,e])=>`<option value="${c}" ${m.category===c?'selected':''}>${e} ${c}</option>`).join('')}
+          </select>
+          · ${m.date}
         </div>
       </div>
       <div class="mov-amount" style="color:${m.type==='income'?'var(--green)':'var(--red)'}">
@@ -1878,8 +1881,47 @@ window.openAmort = function(id){
 })();
 
 // ═══════════════════════════════════════════════════
+// GLOBAL ACTIONS (window.X so inline onclick= works)
+// ═══════════════════════════════════════════════════
+window.setFilter   = f=>{ S.filter=f; render(); };
+window.delMov      = id=>{ S.movements=S.movements.filter(m=>m.id!==id); S.analysis=null; render(); };
+window.delBudget   = cat=>{ delete S.budgets[cat]; render(); };
+window.delSaving   = id=>{ S.savings=S.savings.filter(s=>s.id!==id); render(); };
+window.delDebt     = id=>{ S.debts=S.debts.filter(d=>d.id!==id); S.analysis=null; render(); };
+window.addSaving   = id=>{
+  const v=parseFloat(document.getElementById('add-s-'+id)?.value);
+  if(!v) return;
+  S.savings=S.savings.map(s=>s.id===id?{...s,current:Math.min(s.current+v,s.target)}:s);
+  render();
+};
+window.payDebt = id=>{
+  S.debts=S.debts.map(d=>d.id===id?{...d,remaining:Math.max(d.remaining-d.monthly,0)}:d);
+  toast('💸 Cuota pagada'); render();
+};
+window.resetMovements = ()=>{
+  if(!confirm('¿Borrar todos los movimientos? Esta acción no se puede deshacer.')) return;
+  S.movements=[]; S.analysis=null; S.realBalance={bbva:null,revolut:null};
+  render(); toast('🗑 Datos eliminados');
+};
+window.changeCatMovement = (id, cat)=>{
+  S.movements=S.movements.map(m=>m.id===id?{...m,category:cat}:m);
+  saveState();
+};
+window.closeModal    = ()=>{ document.getElementById('quick-modal').style.display='none'; };
+window.closeSettings = ()=>{ document.getElementById('settings-modal').style.display='none'; };
+window.closeCatDetail= ()=>{ document.getElementById('cat-detail-modal').style.display='none'; };
+window.openSettings  = openSettings;
+window.openModal     = openModal;
+window.openCatDetail = openCatDetail;
+
+// ═══════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════
+// Button bindings (elements are always in DOM)
+document.getElementById('dark-toggle').onclick  = toggleDark;
+document.getElementById('settings-btn').onclick = openSettings;
+document.getElementById('fab').onclick          = openModal;
+
 applyDark();
 render();
 </script>
