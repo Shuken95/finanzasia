@@ -1431,6 +1431,7 @@ function rDeudas(){
 
 // ── ANÁLISIS IA ────────────────────────────────────
 // ── ANÁLISIS IA ────────────────────────────────────
+function prioColor(p){ return p==='alta'?'var(--red)':p==='media'?'var(--orange)':'var(--green)'; }
 function rAnalysis(){
   const hasData = S.movements.filter(m=>!isInterAccount(m)).length > 0;
   const a = S.analysis;
@@ -1497,7 +1498,7 @@ function rAnalysis(){
       <div class="plan-step">
         <div class="step-num">${i+1}</div>
         <div>
-          <div class="step-title">${s.titulo} <span class="tag" style="font-size:9px;color:${{alta:'var(--red)',media:'var(--orange)',baja:'var(--green)'}[s.prioridad]||'var(--muted)'};border-color:${{alta:'var(--red)',media:'var(--orange)',baja:'var(--green)'}[s.prioridad]||'var(--muted)'}33;background:${{alta:'var(--red)',media:'var(--orange)',baja:'var(--green)'}[s.prioridad]||'var(--muted)'}11">${s.prioridad}</span></div>
+          <div class="step-title">${s.titulo} <span class="tag" style="font-size:9px;color:${prioColor(s.prioridad)};border-color:${prioColor(s.prioridad)}33;background:${prioColor(s.prioridad)}11">${s.prioridad}</span></div>
           <div class="step-detail">${s.detalle}</div>
         </div>
       </div>`).join('')}
@@ -1621,15 +1622,17 @@ window.sendChat = async ()=>{
 function renderChatHistory(){
   const el=document.getElementById('chat-history');
   if(!el||!S.chatHistory) return;
-  el.innerHTML=(S.chatHistory||[]).map(m=>`
-    <div style="display:flex;justify-content:${m.role==='user'?'flex-end':'flex-start'}">
-      <div style="max-width:85%;padding:9px 13px;border-radius:${m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px'};
-        background:${m.role==='user'?'var(--orange)':'var(--surface2)'};
-        color:${m.role==='user'?'#fff':'var(--text)'};
-        font-size:13px;line-height:1.6;${m.thinking?'opacity:.5':''}">
-        ${m.text}
-      </div>
-    </div>`).join('');
+  el.innerHTML=(S.chatHistory||[]).map(function(m){
+    const isUser=m.role==='user';
+    return '<div style="display:flex;justify-content:'+(isUser?'flex-end':'flex-start')+'">'
+      +'<div style="max-width:85%;padding:9px 13px;'
+      +'border-radius:'+(isUser?'14px 14px 4px 14px':'14px 14px 14px 4px')+';'
+      +'background:'+(isUser?'var(--orange)':'var(--surface2)')+';'
+      +'color:'+(isUser?'#fff':'var(--text)')+';'
+      +'font-size:13px;line-height:1.6;'+(m.thinking?'opacity:.5':'')+'">'
+      +m.text
+      +'</div></div>';
+  }).join('');
   el.scrollTop=el.scrollHeight;
 }
 
