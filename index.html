@@ -726,13 +726,23 @@ function computed(){
   let totalIn=0,totalOut=0;
   const now7=Date.now()-7*86400000;
   let weekOut=0;
+  // Mes actual: solo movimientos de este año+mes
+  const nowD=new Date();
+  const curYear=nowD.getFullYear();
+  const curMonth=nowD.getMonth(); // 0-11
   for(const m of S.movements){
     if(isInterAccount(m)) continue;
-    if(m.type==='income'){totalIn+=m.amount;if(bySrc[m.source])bySrc[m.source].in+=m.amount;}
-    else{
+    const mDate=new Date(m.date);
+    const inCurrentMonth=(mDate.getFullYear()===curYear && mDate.getMonth()===curMonth);
+    if(m.type==='income'){
+      totalIn+=m.amount;
+      if(bySrc[m.source])bySrc[m.source].in+=m.amount;
+    } else {
       totalOut+=m.amount;
       if(bySrc[m.source])bySrc[m.source].out+=m.amount;
-      if(m.category!=='Transferencia')byCat[m.category]=(byCat[m.category]||0)+m.amount;
+      // byCat y presupuestos: solo mes actual
+      if(inCurrentMonth && m.category!=='Transferencia')
+        byCat[m.category]=(byCat[m.category]||0)+m.amount;
       if(new Date(m.date).getTime()>=now7)weekOut+=m.amount;
     }
   }
