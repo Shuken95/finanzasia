@@ -263,6 +263,11 @@
     #install-bar.show{display:flex}
     .install-text{flex:1;font-size:12px;color:var(--orange);font-weight:600}
 
+    /* ── UPDATE BAR ── */
+    #update-bar{display:none;background:rgba(46,125,82,.12);border:1px solid rgba(46,125,82,.3);border-radius:10px;padding:11px 14px;align-items:center;gap:10px;margin:8px 14px 0}
+    #update-bar.show{display:flex}
+    .update-text{flex:1;font-size:12px;color:var(--green);font-weight:600}
+
     /* ── SETTINGS MODAL ── */
     .settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
     .settings-row:last-child{border-bottom:none}
@@ -289,6 +294,12 @@
   <span class="install-text">📲 Instalar FinanzasIA como app</span>
   <button class="btn btn-sm" id="install-btn">Instalar</button>
   <button class="btn-ghost btn btn-sm" id="dismiss-install">✕</button>
+</div>
+
+<div id="update-bar">
+  <span class="update-text">🆕 Nueva versión disponible</span>
+  <button class="btn btn-sm" style="background:var(--green);box-shadow:0 2px 8px rgba(46,125,82,.3)" onclick="applyUpdate()">Actualizar</button>
+  <button class="btn-ghost btn btn-sm" onclick="document.getElementById('update-bar').classList.remove('show')">✕</button>
 </div>
 
 <div id="app">
@@ -393,6 +404,25 @@
             <button class="btn btn-sm" onclick="saveApiKey()">Guardar</button>
           </div>
           <div id="api-key-status" style="font-size:11px;margin-top:8px;color:var(--muted)"></div>
+        </div>
+
+        <!-- Datos y Backup -->
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;text-align:center;padding:0 20px">Datos y backup</div>
+        <div style="background:var(--surface2);border-radius:16px;padding:18px;margin-bottom:24px;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px">📤 Exportar backup</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Descarga todos tus datos como JSON. Guárdalo antes de reinstalar la app.</div>
+            <button class="btn btn-full" onclick="exportBackup()" style="font-size:13px">Exportar datos</button>
+          </div>
+          <div style="height:1px;background:var(--border)"></div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px">📥 Importar backup</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Restaura un backup guardado anteriormente. Reemplazará los datos actuales.</div>
+            <label style="display:block;cursor:pointer;position:relative">
+              <input type="file" id="backup-file-input" accept=".json" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+              <div class="btn btn-outline btn-full" style="font-size:13px;text-align:center">Seleccionar archivo JSON</div>
+            </label>
+          </div>
         </div>
 
         <!-- Zona peligrosa -->
@@ -538,25 +568,56 @@
   const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
   document.getElementById('pwa-manifest').href = URL.createObjectURL(mBlob);
 
-  // ── Minimal service worker via blob ──
+  // ── Service worker con detección de actualizaciones ──
   if('serviceWorker' in navigator){
     const swCode = `
-      const CACHE='finanzas-v1';
+      const CACHE='finanzas-v2';
       self.addEventListener('install', e=>{
-        self.skipWaiting();
+        // NO llamamos skipWaiting aquí — esperamos confirmación del usuario
         e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['.'])));
       });
-      self.addEventListener('activate', e=>{ e.waitUntil(self.clients.claim()); });
+      self.addEventListener('activate', e=>{
+        // Limpia cachés antiguas al activar
+        e.waitUntil(
+          caches.keys().then(keys=>Promise.all(
+            keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))
+          )).then(()=>self.clients.claim())
+        );
+      });
       self.addEventListener('fetch', e=>{
         e.respondWith(
           caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('.')))
         );
       });
+      // Mensaje desde la app para activar update
+      self.addEventListener('message', e=>{
+        if(e.data==='SKIP_WAITING') self.skipWaiting();
+      });
     `;
     const swBlob = new Blob([swCode], {type:'application/javascript'});
     const swUrl  = URL.createObjectURL(swBlob);
     navigator.serviceWorker.register(swUrl, {scope: './'})
+      .then(reg=>{
+        // Detectar cuando hay un nuevo SW esperando
+        reg.addEventListener('updatefound', ()=>{
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', ()=>{
+            if(newWorker.state==='installed' && navigator.serviceWorker.controller){
+              // Hay una nueva versión lista — mostrar banner
+              window._pendingSW = newWorker;
+              document.getElementById('update-bar').classList.add('show');
+            }
+          });
+        });
+        // Comprobar actualizaciones al abrir la app
+        reg.update();
+      })
       .catch(err=>console.warn('SW:', err));
+
+    // Cuando el nuevo SW toma el control, recarga para aplicar cambios
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      window.location.reload();
+    });
   }
 })();
 
@@ -778,16 +839,15 @@ function toast(msg){
 }
 
 // ═══════════════════════════════════════════════════
-// CLAUDE API — llamada directa al navegador
+// CLAUDE API — llamada directa desde el navegador
 // ═══════════════════════════════════════════════════
 function getApiKey(){
   return S.anthropicApiKey||localStorage.getItem('anthropic_api_key')||'';
 }
 
-async function claude(prompt,max=400,messagesArr=null){
+async function claude(prompt,max=400){
   const key=getApiKey();
   if(!key) throw new Error('API key no configurada — ve a ⚙️ Ajustes y añade tu clave de Anthropic');
-  const messages=messagesArr||[{role:'user',content:prompt}];
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{
@@ -796,11 +856,7 @@ async function claude(prompt,max=400,messagesArr=null){
       'anthropic-version':'2023-06-01',
       'anthropic-dangerous-direct-browser-access':'true'
     },
-    body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
-      max_tokens:max,
-      messages
-    })
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:max,messages:[{role:'user',content:prompt}]})
   });
   const text=await r.text();
   if(!r.ok) throw new Error('API error '+r.status+': '+text.slice(0,200));
@@ -1042,26 +1098,23 @@ function openSettings(){
   document.getElementById('settings-modal').style.display='block';
   const dm=document.getElementById('dark-toggle-modal');
   if(dm)dm.checked=!!S.dark;
-  // Populate API key field
   const keyInput=document.getElementById('api-key-input');
   if(keyInput){
     const k=getApiKey();
     keyInput.value=k?k:'';
     const status=document.getElementById('api-key-status');
-    if(status) status.textContent=k?'✅ API key guardada':'⚠️ Sin API key — la IA no funcionará';
-    status.style.color=k?'var(--green)':'var(--red)';
+    if(status){status.textContent=k?'✅ API key guardada':'⚠️ Sin API key — la IA no funcionará';status.style.color=k?'var(--green)':'var(--red)';}
   }
   const cs=document.getElementById('currency-select');
   if(cs) cs.value=S.currency||'EUR';
   renderCustomCats();
+  bindBackupInput();
 }
+function closeSettings(){document.getElementById('settings-modal').style.display='none';}
 
 window.saveApiKey=()=>{
   const val=document.getElementById('api-key-input')?.value?.trim()||'';
-  if(!val){
-    toast('⚠️ Introduce una API key válida');
-    return;
-  }
+  if(!val){toast('⚠️ Introduce una API key válida');return;}
   S.anthropicApiKey=val;
   localStorage.setItem('anthropic_api_key',val);
   saveState();
@@ -1069,7 +1122,6 @@ window.saveApiKey=()=>{
   if(status){status.textContent='✅ API key guardada';status.style.color='var(--green)';}
   toast('✅ API key guardada');
 };
-function closeSettings(){document.getElementById('settings-modal').style.display='none';}
 
 function renderCustomCats(){
   const el=document.getElementById('custom-cats-list');
@@ -1092,6 +1144,72 @@ window.addCustomCat=()=>{
 };
 window.removeCustomCat=name=>{delete S.customCats[name];renderCustomCats();saveState();};
 window.setCurrency=v=>{S.currency=v;saveState();render();};
+
+// ═══════════════════════════════════════════════════
+// BACKUP — EXPORTAR / IMPORTAR
+// ═══════════════════════════════════════════════════
+window.exportBackup = ()=>{
+  const data = JSON.stringify(S, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `finanzas-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ Backup exportado');
+};
+
+// Bind del input de backup al abrir settings
+function bindBackupInput(){
+  const fi = document.getElementById('backup-file-input');
+  if(!fi || fi._bound) return;
+  fi._bound = true;
+  fi.onchange = e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      try{
+        const parsed = JSON.parse(ev.target.result);
+        // Validación mínima: debe tener movements o savings
+        if(typeof parsed !== 'object' || parsed === null) throw new Error('Formato incorrecto');
+        if(!confirm('¿Restaurar backup? Se reemplazarán todos los datos actuales.')) return;
+        // Merge safe: preserve required fields with defaults
+        S = {
+          tab:'Resumen', filter:'all', dark:false, currency:'EUR', hideAmounts:true,
+          quickCat:'Alimentación', analysis:null, analysisLoading:false, analysisError:'', tips:'', tipsDate:'', tipsLoading:false,
+          realBalance:{bbva:null,revolut:null},
+          customBanks:[], customCats:{}, learnedCategories:{}, movements:[], budgets:{}, savings:[], debts:[],
+          ...parsed
+        };
+        saveState();
+        applyDark();
+        applyHideAmounts();
+        render();
+        closeSettings();
+        toast('✅ Backup restaurado correctamente');
+      }catch(err){
+        toast('⚠️ Error: archivo no válido');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+    fi.value = '';
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// UPDATE — aplicar nueva versión del service worker
+// ═══════════════════════════════════════════════════
+window.applyUpdate = ()=>{
+  if(window._pendingSW){
+    window._pendingSW.postMessage('SKIP_WAITING');
+  } else {
+    window.location.reload();
+  }
+};
 
 // ═══════════════════════════════════════════════════
 // RENDER
@@ -1796,7 +1914,11 @@ window.sendChat = async ()=>{
   addThinking();
 
   try{
-    const reply=await claude('',300,messages);
+    const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fast:true,max_tokens:300,messages})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const reply=d.content?.[0]?.text?.trim()||'No pude generar respuesta.';
     S.chatHistory=S.chatHistory.filter(m=>!m.thinking);
     S.chatHistory.push({role:'assistant',text:reply});
   }catch(e){
@@ -1933,7 +2055,11 @@ async function generateTips(){
     +'Top gastos: '+(topG||'sin datos')+'\n'
     +'Deudas: '+(S.debts.map(d=>d.name+' '+fmt(d.remaining)).join(', ')||'ninguna')+'\n'
     +'Responde con 3 líneas: emoji + consejo concreto con cifras. Sin introducción ni conclusión.';
-  return await claude(prompt,250);
+  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fast:true,max_tokens:250,messages:[{role:'user',content:prompt}]})});
+  if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t.slice(0,100));}
+  const d=await r.json();
+  return d.content?.[0]?.text?.trim()||'';
 }
 
 async function runAnalysis(){
@@ -1954,7 +2080,13 @@ async function runAnalysis(){
     +'ing='+Math.round(c.totalIn)+' gst='+Math.round(c.realOut)+' deu='+Math.round(debtTotal)
     +' cuot='+Math.round(debtMon)+' aho='+Math.round(ahorros)+' top='+topG+' deudas='+dStr;
 
-  const raw=(await claude(prompt,350)).replace(/```json|```/g,'').trim();
+  const r=await fetch('/api/claude',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fast:true, max_tokens:350, messages:[{role:'user',content:prompt}]})
+  });
+  if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t.slice(0,120));}
+  const d=await r.json();
+  const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
   // Extract JSON even if there's surrounding text
   const jsonMatch=raw.match(/\{[\s\S]*\}/);
   if(!jsonMatch) throw new Error('Sin JSON en respuesta: '+raw.slice(0,150));
