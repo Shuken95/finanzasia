@@ -545,7 +545,7 @@
 // ═══════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════
-const TABS=['Resumen','Movimientos','Presupuesto','Análisis IA'];
+const TABS=['Resumen','Análisis IA'];
 
 const BASE_CATEGORIES={
   'Alimentación':'🛒','Transporte':'🚗','Vivienda':'🏠','Salud':'💊','Ocio':'🎬',
@@ -679,9 +679,7 @@ function keywordCategory(desc=''){
 }
 
 function openCategory(category){
-  selectedCategory=category;
-  S.tab='Movimientos';
-  render();
+  openBudgetDetail(category);
 }
 
 function clearCategoryFilter(){
@@ -1029,8 +1027,7 @@ function renderTabs(){
 
 function renderContent(){
   const map={
-    'Resumen':rResumen,'Movimientos':rMovimientos,
-    'Presupuesto':rPresupuesto,'Análisis IA':rAnalysis
+    'Resumen':rResumen,'Análisis IA':rAnalysis
   };
   document.getElementById('content').innerHTML=(map[S.tab]||rResumen)();
   bindEvents();
@@ -1148,8 +1145,8 @@ function rResumen(){
 
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div class="card-title" style="margin:0">📊 Gastos por categoría</div>
-      <button onclick="setTab('Presupuesto')" style="font-size:11px;font-weight:700;color:var(--orange);background:none;border:none;cursor:pointer;padding:0">Ver todo →</button>
+      <div class="card-title" style="margin:0">🎯 Mis presupuestos</div>
+      <button onclick="openAddBudget()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;width:28px;height:28px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(204,120,92,.3);line-height:1">+</button>
     </div>
     ${sorted.length?sorted.map(([cat,amt])=>{
       const budget=S.budgets[cat]||null;
@@ -1157,7 +1154,7 @@ function rResumen(){
       const pctOfBudget=budget?Math.min((amt/budget)*100,100):null;
       const overBudget=budget&&amt>budget;
       const barColor=overBudget?'var(--red)':budget?'var(--green)':'var(--orange)';
-      return `<div class="cat-row" onclick="openCategory(\'${cat}\')" style="cursor:pointer;background:var(--surface2);padding:10px;border-radius:12px">
+      return `<div class="cat-row" onclick="openCategory(\'${cat}\')" style="cursor:pointer;background:var(--surface2);padding:10px;border-radius:12px;margin-bottom:8px">
         <div class="cat-header">
           <span class="cat-name">${allCats()[cat]||'📦'} ${cat}</span>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1172,10 +1169,10 @@ function rResumen(){
         ${budget?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
           <span>${Math.round(pctOfBudget)}% del presupuesto</span>
           <span>${overBudget?'<span style=\'color:var(--red)\'>Excedido</span>':'Queda '+fmt(budget-amt)}</span>
-        </div>`:''}
+        </div>`:`<div style="font-size:10px;color:var(--muted2);margin-top:3px">Sin límite · toca para ver movimientos</div>`}
       </div>`;
     }).join(''):`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin gastos aún — importa tus CSVs</div></div>`}
-    ${!Object.keys(S.budgets).length?`<div style="margin-top:10px;padding:10px 12px;background:var(--orange-bg);border-radius:10px;font-size:12px;color:var(--orange);font-weight:600">💡 Define presupuestos en la pestaña <strong>Presupuesto</strong> para ver límites aquí</div>`:''}
+    ${!Object.keys(S.budgets).length?`<div style="margin-top:10px;padding:10px 12px;background:var(--orange-bg);border-radius:10px;font-size:12px;color:var(--orange);font-weight:600">💡 Pulsa <strong>+</strong> para crear presupuestos por categoría</div>`:''}
   </div>
 
 `;
@@ -2142,9 +2139,135 @@ function openCatDetail(cat){
   document.getElementById('cat-detail-modal').style.display='flex';
 }
 window.closeCatDetail= ()=>{ document.getElementById('cat-detail-modal').style.display='none'; };
+
+// ── BUDGET DETAIL MODAL ─────────────────────────────
+function openBudgetDetail(cat){
+  const cats=allCats();
+  const emoji=cats[cat]||'📦';
+  const movs=S.movements.filter(m=>m.category===cat&&m.type==='expense');
+  const total=movs.reduce((s,m)=>s+m.amount,0);
+  const budget=S.budgets[cat]||null;
+  const over=budget&&total>budget;
+
+  document.getElementById('bd-title').textContent=emoji+' '+cat;
+  document.getElementById('bd-sub').textContent=movs.length+' movimientos este mes · '+fmt(total)+' gastado';
+
+  // Budget limit row
+  const catOpts=Object.entries(cats).map(([c,e])=>`<option value="${c}" ${c===cat?'selected':''}>${e} ${c}</option>`).join('');
+  document.getElementById('bd-budget-row').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px">Límite mensual</div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <input id="bd-limit-input" type="number" placeholder="Sin límite" value="${budget||''}" inputmode="decimal"
+            style="width:110px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;color:var(--text);padding:7px 10px;font-size:13px;font-family:inherit;outline:none"/>
+          <button onclick="saveBudgetLimit('${cat}')" class="btn btn-sm" style="font-size:12px">Guardar</button>
+          ${budget?`<button onclick="delBudgetFromModal('${cat}')" class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(192,57,43,.25);box-shadow:none;font-size:11px">Quitar</button>`:''}
+        </div>
+      </div>
+      ${budget?`<div style="font-size:12px;font-weight:700;color:${over?'var(--red)':'var(--green)'}">${over?'⚠️ Excedido '+fmt(total-budget):'✅ Queda '+fmt(budget-total)}</div>`:''}
+    </div>`;
+
+  // Movement list with inline category editor
+  document.getElementById('bd-list').innerHTML=movs.length?movs.map(m=>{
+    const opts=Object.entries(cats).map(([c,e])=>`<option value="${c}" ${c===m.category?'selected':''}>${e} ${c}</option>`).join('');
+    return `
+    <div style="background:var(--surface2);border-radius:12px;padding:11px 13px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.desc}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${m.date}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--red);flex-shrink:0">${fmt(m.amount)}</div>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:var(--muted);font-weight:600">Categoría:</span>
+        <select onchange="changeCatFromModal('${m.id}',this.value,'${cat}')"
+          style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 8px;font-size:12px;font-family:inherit;outline:none;cursor:pointer">
+          ${opts}
+        </select>
+      </div>
+    </div>`;
+  }).join('')
+  :`<div style="text-align:center;padding:32px 16px;color:var(--muted)">
+      <div style="font-size:32px;margin-bottom:8px">📭</div>
+      <div style="font-size:13px">Sin gastos en esta categoría este mes</div>
+    </div>`;
+
+  document.getElementById('budget-detail-modal').style.display='flex';
+}
+
+window.closeBudgetDetail=()=>{ document.getElementById('budget-detail-modal').style.display='none'; };
+
+window.saveBudgetLimit=(cat)=>{
+  const val=parseFloat(document.getElementById('bd-limit-input')?.value);
+  if(!val||val<=0) return toast('⚠️ Introduce un importe válido');
+  S.budgets[cat]=val;
+  saveState(); render();
+  toast('✅ Presupuesto guardado');
+  openBudgetDetail(cat);
+};
+
+window.delBudgetFromModal=(cat)=>{
+  delete S.budgets[cat];
+  saveState(); render();
+  toast('🗑 Límite eliminado');
+  openBudgetDetail(cat);
+};
+
+window.changeCatFromModal=(id, newCat, prevCat)=>{
+  updateMovementCategory(id, newCat);
+  // Reopen the modal for the PREVIOUS category (user is correcting from that view)
+  setTimeout(()=>openBudgetDetail(prevCat),100);
+};
+
+// ── ADD BUDGET MODAL ────────────────────────────────
+window.openAddBudget=()=>{
+  const modal=document.getElementById('add-budget-modal');
+  // Populate category selector
+  const cats=allCats();
+  document.getElementById('ab-cat').innerHTML=Object.entries(cats)
+    .filter(([k])=>!['Nómina','Freelance','Inversión','Transferencia'].includes(k))
+    .map(([c,e])=>`<option value="${c}">${e} ${c}</option>`).join('');
+  document.getElementById('ab-amt').value='';
+  document.getElementById('ab-emoji').value='';
+  document.getElementById('ab-name').value='';
+  modal.style.display='flex';
+};
+window.closeAddBudget=()=>{ document.getElementById('add-budget-modal').style.display='none'; };
+
+window.saveNewBudget=()=>{
+  const cat=document.getElementById('ab-cat').value;
+  const amt=parseFloat(document.getElementById('ab-amt').value);
+  if(!cat) return toast('⚠️ Elige una categoría');
+  if(!amt||amt<=0) return toast('⚠️ Introduce un importe válido');
+  S.budgets[cat]=amt;
+  saveState(); render();
+  closeAddBudget();
+  toast('✅ Presupuesto creado');
+};
+
+window.addCatFromBudget=()=>{
+  const emoji=document.getElementById('ab-emoji').value.trim()||'🏷️';
+  const name=document.getElementById('ab-name').value.trim();
+  if(!name) return toast('⚠️ Escribe un nombre');
+  if(!S.customCats) S.customCats={};
+  S.customCats[name]=emoji;
+  document.getElementById('ab-emoji').value='';
+  document.getElementById('ab-name').value='';
+  // Refresh selector
+  const cats=allCats();
+  document.getElementById('ab-cat').innerHTML=Object.entries(cats)
+    .filter(([k])=>!['Nómina','Freelance','Inversión','Transferencia'].includes(k))
+    .map(([c,e])=>`<option value="${c}" ${c===name?'selected':''}>${e} ${c}</option>`).join('');
+  saveState();
+  toast('✅ Categoría añadida — ahora pon el límite y guarda');
+};
+
 window.openSettings  = openSettings;
 window.openModal     = openModal;
 window.openCatDetail = openCatDetail;
+window.openBudgetDetail = openBudgetDetail;
 
 // ═══════════════════════════════════════════════════
 // BOOT
@@ -2169,6 +2292,48 @@ render();
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="cat-detail-sub"></div>
     <div id="cat-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
     <button onclick="closeCatDetail()" class="btn btn-ghost btn-full" style="margin-top:20px">Cerrar</button>
+  </div>
+</div>
+
+<!-- Budget detail modal (movimientos por categoría + editar categoría) -->
+<div id="budget-detail-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeBudgetDetail()"></div>
+  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:88dvh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .25s ease">
+    <div style="padding:20px 20px 14px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--border)">
+      <div>
+        <div id="bd-title" style="font-weight:800;font-size:17px;color:var(--text)"></div>
+        <div id="bd-sub" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
+      </div>
+      <button onclick="closeBudgetDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px">✕</button>
+    </div>
+    <!-- Budget limit row -->
+    <div id="bd-budget-row" style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0"></div>
+    <!-- Movements list -->
+    <div id="bd-list" style="overflow-y:auto;padding:14px 16px calc(var(--safe-bottom)+16px);display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- Add budget modal -->
+<div id="add-budget-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeAddBudget()"></div>
+  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;padding:24px 20px calc(var(--safe-bottom)+24px);animation:slideUp .25s ease">
+    <div style="font-weight:800;font-size:17px;color:var(--text);margin-bottom:16px;padding-right:36px">🎯 Nuevo presupuesto</div>
+    <button onclick="closeAddBudget()" style="position:absolute;top:22px;right:18px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:14px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center">✕</button>
+    <div class="form-group">
+      <select id="ab-cat"></select>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="ab-amt" type="number" placeholder="Límite mensual €" inputmode="decimal" style="flex:1"/>
+        <button class="btn" onclick="saveNewBudget()" style="flex-shrink:0">Guardar</button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px">Nueva categoría personalizada</div>
+        <div style="display:flex;gap:8px">
+          <input id="ab-emoji" placeholder="🏷️" style="max-width:52px;text-align:center;padding:9px 6px"/>
+          <input id="ab-name" placeholder="Nombre de categoría" style="flex:1"/>
+          <button class="btn btn-outline btn-sm" onclick="addCatFromBudget()">Añadir</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
