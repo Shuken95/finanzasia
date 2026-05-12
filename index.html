@@ -1629,26 +1629,38 @@ async function runAnalysis(){
   const debtTotal=S.debts.reduce((s,d)=>s+d.remaining,0);
   const debtMon=S.debts.reduce((s,d)=>s+d.monthly,0);
   const ahorros=S.savings.reduce((s,v)=>s+v.current,0);
-  const topG=Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>k+':'+Math.round(v)+'eu').join(',');
-  const deudasStr=S.debts.map(d=>d.name+':'+Math.round(d.remaining)+'eu/'+Math.round(d.monthly)+'mes').join(',');
-  const prompt='Eres asesor financiero. Responde SOLO con JSON en una linea sin markdown: '
-    +'{"p":<0-100>,"c":"<green|orange|red>","r":"<resumen 1 frase>","f":["<fuerte>","<fuerte>"],"m":["<mejora>","<mejora>"],'
-    +'"pl":[{"t":"<titulo>","d":"<detalle>","pr":"<alta|media|baja>"},{"t":"<t>","d":"<d>","pr":"<p>"},{"t":"<t>","d":"<d>","pr":"<p>"}],'
-    +'"e":"<estrategia deudas 1 frase>","a":<ahorro recomendado mes>} '
-    +'Datos: ingresos='+Math.round(c.totalIn)+'eu gastos='+Math.round(c.realOut)+'eu deuda='+Math.round(debtTotal)+'eu '
-    +'cuotas='+Math.round(debtMon)+'eu/mes ahorros='+Math.round(ahorros)+'eu gastos_top='+topG+' deudas='+deudasStr;
-  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({max_tokens:400,messages:[{role:'user',content:prompt}]})});
-  if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t.slice(0,150));}
+  const topG=Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,3)
+    .map(([k,v])=>k[0]+':'+Math.round(v)).join(',');
+  const dStr=S.debts.map(d=>d.name.slice(0,8)+':'+Math.round(d.remaining)+'/'+Math.round(d.monthly)).join(',');
+
+  // Ultra-compact prompt for Haiku — fits comfortably in 10s timeout
+  const prompt=
+    'JSON financiero sin markdown, 1 linea:
+'
+    +'{"p":<0-100>,"c":"<green|orange|red>","r":"<1frase>","f":["<a>","<b>"],"m":["<a>","<b>"],'
+    +'"pl":[{"t":"<titulo>","d":"<1frase>","pr":"<alta|media|baja>"},{"t":"<t>","d":"<d>","pr":"<p>"},{"t":"<t>","d":"<d>","pr":"<p>"}],'
+    +'"e":"<estrategia deudas 1frase>","a":<numero>}
+'
+    +'ing='+Math.round(c.totalIn)+' gst='+Math.round(c.realOut)+' deu='+Math.round(debtTotal)
+    +' cuot='+Math.round(debtMon)+' aho='+Math.round(ahorros)+' top='+topG+' deudas='+dStr;
+
+  const r=await fetch('/api/claude',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fast:true, max_tokens:350, messages:[{role:'user',content:prompt}]})
+  });
+  if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t.slice(0,120));}
   const d=await r.json();
   const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-  let short;
-  try{short=JSON.parse(raw);}catch(e){throw new Error('JSON invalido: '+raw.slice(0,200));}
+  // Extract JSON even if there's surrounding text
+  const jsonMatch=raw.match(/\{[\s\S]*\}/);
+  if(!jsonMatch) throw new Error('Sin JSON en respuesta: '+raw.slice(0,150));
+  let s;
+  try{s=JSON.parse(jsonMatch[0]);}catch(e){throw new Error('JSON invalido: '+jsonMatch[0].slice(0,150));}
   return{
-    puntuacion:short.p, color:short.c, resumen:short.r,
-    puntos_fuertes:short.f, areas_mejora:short.m,
-    plan:(short.pl||[]).map(x=>({titulo:x.t,detalle:x.d,prioridad:x.pr})),
-    estrategia_deuda:short.e, ahorro_recomendado_mes:short.a
+    puntuacion:s.p||50, color:s.c||'orange', resumen:s.r||'',
+    puntos_fuertes:s.f||[], areas_mejora:s.m||[],
+    plan:(s.pl||[]).map(x=>({titulo:x.t,detalle:x.d,prioridad:x.pr})),
+    estrategia_deuda:s.e||'', ahorro_recomendado_mes:s.a||0
   };
 }
 
