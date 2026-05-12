@@ -158,8 +158,8 @@
     .fab:active{transform:scale(.93)}
 
     /* ── QUICK EXPENSE MODAL ── */
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease}
-    .modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px calc(var(--safe-bottom)+24px);width:100%;max-width:680px;animation:slideUp .25s ease}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0 14px;animation:fadeIn .2s ease}
+    .modal{background:var(--surface);border-radius:24px 24px 0 0;padding:28px 26px calc(var(--safe-bottom)+36px);width:100%;max-width:680px;animation:slideUp .25s ease}
     @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     .modal-title{font-weight:800;font-size:17px;margin-bottom:16px;color:var(--text)}
@@ -401,17 +401,18 @@
 <!-- Add Debt modal -->
 <div id="add-debt-modal" style="display:none">
   <div class="modal-overlay" onclick="closeAddDebt()">
-    <div class="modal" onclick="event.stopPropagation()" style="position:relative;padding:28px 24px calc(var(--safe-bottom)+28px)">
-      <div style="font-weight:800;font-size:18px;color:var(--text);margin-bottom:20px;padding-right:36px">🏦 Nuevo préstamo</div>
-      <button onclick="closeAddDebt()" class="modal-close">✕</button>
-      <div class="form-group">
+    <div class="modal" onclick="event.stopPropagation()" style="position:relative">
+      <div style="font-weight:800;font-size:20px;color:var(--text);margin-bottom:6px;padding-right:40px">🏦 Nuevo préstamo</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.5">Registra un préstamo o hipoteca para hacer seguimiento.</div>
+      <button onclick="closeAddDebt()" class="modal-close" style="top:28px;right:24px">✕</button>
+      <div class="form-group" style="gap:12px">
         <input id="nd-name" placeholder="Nombre (ej: Hipoteca, Préstamo coche)"/>
-        <div class="form-row">
+        <div class="form-row" style="gap:10px">
           <input id="nd-total"     type="number" placeholder="Total €"     inputmode="decimal"/>
           <input id="nd-remaining" type="number" placeholder="Pendiente €" inputmode="decimal"/>
         </div>
         <input id="nd-monthly" type="number" placeholder="Cuota mensual €" inputmode="decimal"/>
-        <button class="btn btn-full" id="nd-save-btn">Añadir préstamo</button>
+        <button class="btn btn-full" id="nd-save-btn" style="margin-top:4px">Añadir préstamo</button>
       </div>
     </div>
   </div>
@@ -420,16 +421,17 @@
 <!-- Add Saving modal -->
 <div id="add-saving-modal" style="display:none">
   <div class="modal-overlay" onclick="closeAddSaving()">
-    <div class="modal" onclick="event.stopPropagation()" style="position:relative;padding:28px 24px calc(var(--safe-bottom)+28px)">
-      <div style="font-weight:800;font-size:18px;color:var(--text);margin-bottom:20px;padding-right:36px">🏦 Nueva meta de ahorro</div>
-      <button onclick="closeAddSaving()" class="modal-close">✕</button>
-      <div class="form-group">
+    <div class="modal" onclick="event.stopPropagation()" style="position:relative">
+      <div style="font-weight:800;font-size:20px;color:var(--text);margin-bottom:6px;padding-right:40px">🎯 Nueva meta de ahorro</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.5">Define tu objetivo y cuánto llevas ahorrado hasta ahora.</div>
+      <button onclick="closeAddSaving()" class="modal-close" style="top:28px;right:24px">✕</button>
+      <div class="form-group" style="gap:12px">
         <input id="ns-name"    placeholder="Nombre (ej: Vacaciones verano)"/>
-        <div class="form-row">
+        <div class="form-row" style="gap:10px">
           <input id="ns-target"  type="number" placeholder="Objetivo €"    inputmode="decimal"/>
           <input id="ns-current" type="number" placeholder="Ya ahorrado €" inputmode="decimal"/>
         </div>
-        <button class="btn btn-full" id="ns-save-btn">Crear meta</button>
+        <button class="btn btn-full" id="ns-save-btn" style="margin-top:4px">Crear meta</button>
       </div>
     </div>
   </div>
@@ -963,6 +965,7 @@ async function handleImport(file, source){
   const newOnes=parsed.filter(m=>!existing.has(`${m.desc}|${m.date}|${m.amount}`));
   S.movements=[...newOnes,...S.movements];
   S.analysis=null;
+  saveState();
   render();
   const srcLabel=allSources()[source]?.label||source;
   toast(`✅ ${newOnes.length} movimientos de ${srcLabel} importados`);
@@ -2345,10 +2348,12 @@ window.openAddBank = ()=>{
   document.getElementById('nb-file-icon').textContent = '📄';
   document.getElementById('nb-save-btn').disabled = true;
   document.getElementById('nb-save-btn').style.opacity = '.45';
-  // Reset color selection
-  document.querySelectorAll('.bank-color-swatch').forEach(el=>{
-    el.classList.toggle('selected', el.dataset.color==='#3498DB');
-  });
+  // Build color swatches dynamically
+  const colors = ['#E74C3C','#E67E22','#F1C40F','#2ECC71','#1ABC9C','#3498DB','#9B59B6','#E91E63','#607D8B'];
+  document.getElementById('nb-colors').innerHTML = colors.map(col=>`
+    <div onclick="selectBankColor('${col}')" data-color="${col}"
+      style="width:32px;height:32px;border-radius:50%;background:${col};cursor:pointer;transition:transform .15s,border-color .15s;border:2px solid transparent;flex-shrink:0"
+      class="bank-color-swatch ${col==='#3498DB'?'selected':''}"></div>`).join('');
   document.getElementById('add-bank-modal').style.display='flex';
 
   // File input binding
@@ -2398,10 +2403,12 @@ window.confirmAddBank = async ()=>{
   // Create unique id
   const id = 'bank_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + uid();
 
-  // Register bank
+  // Register bank and persist immediately so it shows up even if import fails
   if(!S.customBanks) S.customBanks=[];
   S.customBanks.push({id, name, emoji, color:_selectedBankColor});
   S.realBalance[id] = null;
+  saveState();
+  render(); // show the new bank card right away
 
   closeAddBank();
   await handleImport(_pendingBankFile, id);
@@ -2425,76 +2432,6 @@ S.tab='Resumen'; // siempre abre en Resumen
 applyDark();
 applyHideAmounts();
 render();
-
-// ===================== IA PRO MAX SYSTEM =====================
-
-// Normalización
-function normalize(text){
-  return text
-    .toLowerCase()
-    .replace(/[0-9]/g, "")
-    .replace(/[^a-z\s]/g, "")
-    .trim();
-}
-
-// Memoria usuario
-function saveUserCorrection(texto, categoria){
-  let memory = JSON.parse(localStorage.getItem("ai_memory") || "{}");
-  memory[texto.toLowerCase()] = categoria;
-  localStorage.setItem("ai_memory", JSON.stringify(memory));
-}
-
-function checkMemory(texto){
-  let memory = JSON.parse(localStorage.getItem("ai_memory") || "{}");
-  return memory[texto.toLowerCase()] || null;
-}
-
-// Detección suscripciones
-function isSubscription(texto){
-  const subs = ["netflix","spotify","amazon","basicfit","gym","hbo"];
-  return subs.some(s => texto.includes(s));
-}
-
-// IA call
-async function classifyTransaction(texto){
-  try{
-    const res = await fetch('/.netlify/functions/classify',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:texto})
-    });
-    const data = await res.json();
-    if(data && data.category){
-      return data.category;
-    }
-  }catch(e){
-    console.log('IA error',e);
-  }
-  return null;
-}
-
-// Sistema inteligente completo
-async function smartCategorize(texto, fallbackFn){
-
-  texto = normalize(texto);
-
-  // 1. Memoria
-  let mem = checkMemory(texto);
-  if(mem) return mem;
-
-  // 2. Reglas rápidas
-  if(isSubscription(texto)) return "Suscripciones";
-
-  // 3. IA
-  let ia = await classifyTransaction(texto);
-  if(ia) return ia;
-
-  // 4. Fallback
-  return fallbackFn ? fallbackFn(texto) : "Otros";
-}
-
-// ============================================================
-
 </script>
 
 <!-- Category detail modal -->
@@ -2565,12 +2502,7 @@ async function smartCategorize(texto, fallbackFn){
       <!-- Color picker -->
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Color</div>
-        <div id="nb-colors" style="display:flex;gap:8px;flex-wrap:wrap">
-          ${['#E74C3C','#E67E22','#F1C40F','#2ECC71','#1ABC9C','#3498DB','#9B59B6','#E91E63','#607D8B'].map((col,i)=>`
-            <div onclick="selectBankColor('${col}')" data-color="${col}"
-              style="width:28px;height:28px;border-radius:50%;background:${col};cursor:pointer;transition:transform .15s;border:2px solid transparent"
-              class="bank-color-swatch ${i===5?'selected':''}"></div>`).join('')}
-        </div>
+        <div id="nb-colors" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
       <!-- File drop zone -->
       <div id="nb-drop-zone" style="border:2px dashed var(--border2);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;background:var(--surface2);position:relative;transition:all .25s;margin-top:4px">
