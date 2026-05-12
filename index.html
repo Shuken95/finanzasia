@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-title" content="FinanzasIA"/>
   <meta name="description" content="Gestión inteligente de finanzas personales"/>
   <title>FinanzasIA</title>
-  <link rel="manifest" href="manifest.json"/>
-  <link rel="icon" type="image/png" href="icons/icon-192.png"/>
-  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="manifest" id="pwa-manifest"/>
+  <link rel="icon" id="pwa-icon" type="image/png"/>
+  <link rel="apple-touch-icon" id="pwa-apple-icon"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
   <style>
@@ -277,6 +277,10 @@
 
     /* ── CUSTOM CATEGORIES ── */
     .custom-cat-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:5px 10px;font-size:12px;font-weight:600;margin:3px}
+
+    /* ── HIDDEN AMOUNTS ── */
+    .amt-hidden{filter:blur(6px);user-select:none;pointer-events:none;transition:filter .25s}
+    #hide-amounts-btn.active{color:var(--orange);border-color:var(--orange);background:var(--orange-bg)}
   </style>
 </head>
 <body>
@@ -296,6 +300,7 @@
         <div class="logo-sub">BBVA · Revolut · Gestión inteligente</div>
       </div>
       <div class="header-actions">
+        <button class="icon-btn" id="hide-amounts-btn" title="Ocultar/mostrar cantidades">👁</button>
         <button class="icon-btn" id="dark-toggle" title="Modo oscuro/claro">🌙</button>
         <button class="icon-btn" id="settings-btn" title="Ajustes">⚙️</button>
       </div>
@@ -487,6 +492,57 @@
 
 <script>
 // ═══════════════════════════════════════════════════
+// PWA — inline manifest + service worker
+// ═══════════════════════════════════════════════════
+(function(){
+  // ── Inline SVG icon as data URI ──
+  const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#CC785C"/><text x="96" y="130" font-size="100" text-anchor="middle">💰</text></svg>`;
+  const iconBlob = new Blob([svgIcon], {type:'image/svg+xml'});
+  const iconUrl  = URL.createObjectURL(iconBlob);
+  document.getElementById('pwa-icon').href       = iconUrl;
+  document.getElementById('pwa-apple-icon').href = iconUrl;
+
+  // ── Inline manifest via blob ──
+  const manifest = {
+    name: 'FinanzasIA',
+    short_name: 'FinanzasIA',
+    description: 'Gestión inteligente de finanzas personales',
+    start_url: '.',
+    display: 'standalone',
+    orientation: 'portrait',
+    background_color: '#F5F0E8',
+    theme_color: '#CC785C',
+    icons: [
+      { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ]
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(mBlob);
+
+  // ── Minimal service worker via blob ──
+  if('serviceWorker' in navigator){
+    const swCode = `
+      const CACHE='finanzas-v1';
+      self.addEventListener('install', e=>{
+        self.skipWaiting();
+        e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['.'])));
+      });
+      self.addEventListener('activate', e=>{ e.waitUntil(self.clients.claim()); });
+      self.addEventListener('fetch', e=>{
+        e.respondWith(
+          caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('.')))
+        );
+      });
+    `;
+    const swBlob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl, {scope: './'})
+      .catch(err=>console.warn('SW:', err));
+  }
+})();
+
+// ═══════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════
 const TABS=['Resumen','Movimientos','Presupuesto','Análisis IA'];
@@ -512,7 +568,7 @@ const PRIO_COLOR={alta:'var(--red)',media:'var(--orange)',baja:'var(--green)'};
 let selectedCategory=null;
 
 let S=loadState()||{
-  tab:'Resumen', filter:'all', dark:false, currency:'EUR',
+  tab:'Resumen', filter:'all', dark:false, currency:'EUR', hideAmounts:true,
   quickCat:'Alimentación', analysis:null, analysisLoading:false, analysisError:'', tips:'', tipsDate:'', tipsLoading:false,
   realBalance:{bbva:null,revolut:null},
   customCats:{},
@@ -562,6 +618,21 @@ function applyDark(){
   if(dm) dm.checked=!!S.dark;
 }
 function toggleDark(){S.dark=!S.dark;applyDark();saveState()}
+
+function applyHideAmounts(){
+  const btn=document.getElementById('hide-amounts-btn');
+  if(!btn) return;
+  if(S.hideAmounts){
+    btn.textContent='🙈';
+    btn.classList.add('active');
+    btn.title='Mostrar cantidades';
+  } else {
+    btn.textContent='👁';
+    btn.classList.remove('active');
+    btn.title='Ocultar cantidades';
+  }
+}
+function toggleHideAmounts(){S.hideAmounts=!S.hideAmounts;applyHideAmounts();saveState();render();}
 
 
 function normalizeText(t=''){
@@ -971,16 +1042,16 @@ function rResumen(){
   return `
   <div class="balance-hero">
     <div class="balance-hero-label">Dinero total disponible</div>
-    <div class="balance-hero-amount">${fmt(totalBalance)}</div>
+    <div class="balance-hero-amount"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(totalBalance)}</span></div>
     <div class="balance-accounts">
       <div class="balance-account" onclick="openImport('bbva')" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
         <div class="balance-account-name">BBVA</div>
-        <div class="balance-account-amt">${fmt(bbvaBalance)}</div>
+        <div class="balance-account-amt"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(bbvaBalance)}</span></div>
         <div style="font-size:9px;opacity:.7;margin-top:3px">📥 Importar CSV</div>
       </div>
       <div class="balance-account" onclick="openImport('revolut')" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
         <div class="balance-account-name">REVOLUT</div>
-        <div class="balance-account-amt">${fmt(revBalance)}</div>
+        <div class="balance-account-amt"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(revBalance)}</span></div>
         <div style="font-size:9px;opacity:.7;margin-top:3px">📥 Importar CSV</div>
       </div>
     </div>
@@ -2069,11 +2140,14 @@ window.openCatDetail = openCatDetail;
 // BOOT
 // ═══════════════════════════════════════════════════
 // Button bindings (elements are always in DOM)
-document.getElementById('dark-toggle').onclick  = toggleDark;
-document.getElementById('settings-btn').onclick = openSettings;
-document.getElementById('fab').onclick          = openModal;
+document.getElementById('hide-amounts-btn').onclick = toggleHideAmounts;
+document.getElementById('dark-toggle').onclick       = toggleDark;
+document.getElementById('settings-btn').onclick      = openSettings;
+document.getElementById('fab').onclick               = openModal;
 
+S.tab='Resumen'; // siempre abre en Resumen
 applyDark();
+applyHideAmounts();
 render();
 </script>
 
