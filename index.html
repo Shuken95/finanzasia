@@ -560,6 +560,12 @@ const SOURCES={
   manual:{label:'Manual',dot:'#8A7A65',bg:'rgba(138,122,101,.1)'}
 };
 
+function allSources(){
+  const s={...SOURCES};
+  (S.customBanks||[]).forEach(b=>{ s[b.id]={label:b.name,dot:b.color,bg:b.color+'22',emoji:b.emoji}; });
+  return s;
+}
+
 const PRIO_COLOR={alta:'var(--red)',media:'var(--orange)',baja:'var(--green)'};
 
 // ═══════════════════════════════════════════════════
@@ -571,32 +577,17 @@ let S=loadState()||{
   tab:'Resumen', filter:'all', dark:false, currency:'EUR', hideAmounts:true,
   quickCat:'Alimentación', analysis:null, analysisLoading:false, analysisError:'', tips:'', tipsDate:'', tipsLoading:false,
   realBalance:{bbva:null,revolut:null},
+  customBanks:[],
   customCats:{},
   learnedCategories:{},
-  movements:[
-    {id:'m1',desc:'Nómina mayo',amount:2800,type:'income',category:'Nómina',date:'2026-05-01',source:'bbva'},
-    {id:'m2',desc:'Hipoteca',amount:720,type:'expense',category:'Hipoteca',date:'2026-05-02',source:'bbva'},
-    {id:'m3',desc:'Préstamo coche',amount:280,type:'expense',category:'Préstamo',date:'2026-05-03',source:'bbva'},
-    {id:'m4',desc:'Mercadona',amount:95,type:'expense',category:'Alimentación',date:'2026-05-04',source:'revolut'},
-    {id:'m5',desc:'Gasolina BP',amount:58,type:'expense',category:'Transporte',date:'2026-05-05',source:'bbva'},
-    {id:'m6',desc:'Netflix',amount:18,type:'expense',category:'Suscripciones',date:'2026-05-06',source:'revolut'},
-    {id:'m7',desc:'Restaurante',amount:46,type:'expense',category:'Restaurantes',date:'2026-05-07',source:'revolut'},
-    {id:'m8',desc:'Préstamo Revolut',amount:180,type:'expense',category:'Préstamo',date:'2026-05-08',source:'revolut'},
-  ],
-  budgets:{'Alimentación':250,'Transporte':120,'Ocio':80,'Restaurantes':100,'Suscripciones':40},
-  savings:[
-    {id:'s1',name:'Fondo emergencia',target:5000,current:1800,color:'#2E7D52'},
-    {id:'s2',name:'Vacaciones',target:1500,current:350,color:'#2471A3'},
-  ],
-  debts:[
-    {id:'d1',name:'Hipoteca',total:120000,remaining:98000,monthly:720,color:'#CC785C',source:'bbva'},
-    {id:'d2',name:'Préstamo coche',total:10000,remaining:6200,monthly:280,color:'#2471A3',source:'bbva'},
-    {id:'d3',name:'Préstamo Revolut',total:3000,remaining:1650,monthly:180,color:'#6C3483',source:'revolut'},
-  ],
+  movements:[],
+  budgets:{},
+  savings:[],
+  debts:[],
 };
 
-function saveState(){try{localStorage.setItem('finanzas_v4',JSON.stringify(S))}catch(e){}}
-function loadState(){try{const s=localStorage.getItem('finanzas_v4');return s?JSON.parse(s):null}catch(e){return null}}
+function saveState(){try{localStorage.setItem('finanzas_v5',JSON.stringify(S))}catch(e){}}
+function loadState(){try{const s=localStorage.getItem('finanzas_v5');return s?JSON.parse(s):null}catch(e){return null}}
 
 function allCats(){return {...BASE_CATEGORIES,...(S.customCats||{})}}
 function fmt(n){
@@ -720,28 +711,28 @@ function isInterAccount(m){
 
 function computed(){
   const bySrc={bbva:{in:0,out:0},revolut:{in:0,out:0}};
+  // Add custom banks to bySrc
+  (S.customBanks||[]).forEach(b=>{ bySrc[b.id]={in:0,out:0}; });
   const byCat={};
   let totalIn=0,totalOut=0;
   const now7=Date.now()-7*86400000;
   let weekOut=0;
-  // Mes actual: solo movimientos de este año+mes
   const nowD=new Date();
   const curYear=nowD.getFullYear();
-  const curMonth=nowD.getMonth(); // 0-11
+  const curMonth=nowD.getMonth();
   for(const m of S.movements){
     if(isInterAccount(m)) continue;
     const mDate=new Date(m.date);
     const inCurrentMonth=(mDate.getFullYear()===curYear && mDate.getMonth()===curMonth);
     if(m.type==='income'){
       totalIn+=m.amount;
-      if(bySrc[m.source])bySrc[m.source].in+=m.amount;
+      if(bySrc[m.source]) bySrc[m.source].in+=m.amount;
     } else {
       totalOut+=m.amount;
-      if(bySrc[m.source])bySrc[m.source].out+=m.amount;
-      // byCat y presupuestos: solo mes actual
+      if(bySrc[m.source]) bySrc[m.source].out+=m.amount;
       if(inCurrentMonth && m.category!=='Transferencia')
         byCat[m.category]=(byCat[m.category]||0)+m.amount;
-      if(new Date(m.date).getTime()>=now7)weekOut+=m.amount;
+      if(new Date(m.date).getTime()>=now7) weekOut+=m.amount;
     }
   }
   const realOut=Object.values(byCat).reduce((a,b)=>a+b,0);
@@ -924,15 +915,48 @@ function parseRevolut(text){
   return{rows,realBalance};
 }
 
-async function handleImport(file,source){
+// Generic CSV parser for unknown banks
+function parseGenericCSV(text){
+  const rows=[];
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return{rows,realBalance:null};
+  // Try to detect header row
+  const header=parseCSVLine(lines[0]).map(h=>h.toLowerCase().trim());
+  // Look for date, description/concept, amount columns
+  const dateIdx=header.findIndex(h=>/fecha|date|dat/.test(h));
+  const descIdx=header.findIndex(h=>/concepto|desc|detail|narr|ref|name|benef|comercio/.test(h));
+  const amtIdx=header.findIndex(h=>/importe|amount|valor|cuantia|cargo|abono/.test(h));
+  if(dateIdx<0||amtIdx<0) return{rows,realBalance:null};
+  for(let i=1;i<lines.length;i++){
+    const cols=parseCSVLine(lines[i]);
+    if(cols.length<3) continue;
+    const rawDate=cols[dateIdx]||'';
+    const desc=(descIdx>=0?cols[descIdx]:'').trim().slice(0,80)||'Movimiento';
+    const rawAmt=(cols[amtIdx]||'').replace(/\./g,'').replace(',','.');
+    const amt=parseFloat(rawAmt);
+    if(isNaN(amt)) continue;
+    let date=new Date().toISOString().slice(0,10);
+    // Try multiple date formats
+    const dm=rawDate.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+    const dm2=rawDate.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+    if(dm) date=`${dm[3]}-${dm[2]}-${dm[1]}`;
+    else if(dm2) date=rawDate.slice(0,10);
+    rows.push({id:uid(),desc,amount:Math.abs(amt),type:amt>=0?'income':'expense',category:'Otro',date});
+  }
+  return{rows,realBalance:null};
+}
+
+async function handleImport(file, source){
   const text=await file.text();
-  const result=source==='bbva'?parseBBVA(text):parseRevolut(text);
+  let result;
+  if(source==='bbva') result=parseBBVA(text);
+  else if(source==='revolut') result=parseRevolut(text);
+  else result=parseGenericCSV(text); // custom bank
   let parsed=result.rows;
-  if(!parsed.length){toast('⚠️ No se encontraron movimientos');return;}
-  if(result.realBalance!==null)S.realBalance[source]=result.realBalance;
+  if(!parsed.length){toast('⚠️ No se encontraron movimientos. Comprueba el formato CSV.');return;}
+  parsed=parsed.map(m=>({...m,source}));
+  if(result.realBalance!==null) S.realBalance[source]=result.realBalance;
   toast(`⏳ Clasificando ${parsed.length} movimientos...`);
-  const hasRealData=S.movements.some(m=>m.source==='bbva'||m.source==='revolut');
-  if(!hasRealData)S.movements=[];
   const cats=await aiBatchCategories(parsed.map(m=>({id:m.id,desc:m.desc})));
   parsed=parsed.map(m=>({...m,category:cats[m.id]||'Otro'}));
   const existing=new Set(S.movements.map(m=>`${m.desc}|${m.date}|${m.amount}`));
@@ -940,7 +964,8 @@ async function handleImport(file,source){
   S.movements=[...newOnes,...S.movements];
   S.analysis=null;
   render();
-  toast(`✅ ${newOnes.length} movimientos de ${SOURCES[source].label} importados`);
+  const srcLabel=allSources()[source]?.label||source;
+  toast(`✅ ${newOnes.length} movimientos de ${srcLabel} importados`);
 }
 
 // ═══════════════════════════════════════════════════
@@ -958,6 +983,14 @@ function openModal(){
       <span class="cat-chip-label">${cat}</span>
     </div>
   `).join('');
+  // Populate source selector with custom banks
+  const customOpts=(S.customBanks||[]).map(b=>`<option value="${b.id}">${b.emoji} ${b.name}</option>`).join('');
+  document.getElementById('q-src').innerHTML=`
+    <option value="revolut">Revolut</option>
+    <option value="bbva">BBVA</option>
+    ${customOpts}
+    <option value="manual">Manual</option>
+  `;
   setTimeout(()=>document.getElementById('q-amt').focus(),300);
 }
 function closeModal(){document.getElementById('quick-modal').style.display='none';}
@@ -1039,7 +1072,12 @@ function rResumen(){
   const c=computed();
   const bbvaBalance=S.realBalance.bbva!==null?S.realBalance.bbva:(c.bySrc.bbva.in-c.bySrc.bbva.out);
   const revBalance=S.realBalance.revolut!==null?S.realBalance.revolut:(c.bySrc.revolut.in-c.bySrc.revolut.out);
-  const totalBalance=bbvaBalance+revBalance;
+  const customBankBalances=(S.customBanks||[]).map(b=>{
+    const src=c.bySrc[b.id]||{in:0,out:0};
+    const bal=S.realBalance[b.id]!==null&&S.realBalance[b.id]!==undefined ? S.realBalance[b.id] : (src.in-src.out);
+    return{...b,balance:bal};
+  });
+  const totalBalance=bbvaBalance+revBalance+customBankBalances.reduce((a,b)=>a+b.balance,0);
   const forecast=monthlyForecast();
   const sorted=Object.entries(c.byCat).sort((a,b)=>b[1]-a[1]).slice(0,7);
 
@@ -1050,16 +1088,28 @@ function rResumen(){
   <div class="balance-hero">
     <div class="balance-hero-label">Dinero total disponible</div>
     <div class="balance-hero-amount"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(totalBalance)}</span></div>
-    <div class="balance-accounts">
-      <div class="balance-account" onclick="openImport('bbva')" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
+    <div class="balance-accounts" style="flex-wrap:wrap;gap:8px">
+      <div class="balance-account" onclick="openImport('bbva')" style="cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:80px">
         <div class="balance-account-name">BBVA</div>
         <div class="balance-account-amt"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(bbvaBalance)}</span></div>
-        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 Importar CSV</div>
+        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 CSV</div>
       </div>
-      <div class="balance-account" onclick="openImport('revolut')" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
+      <div class="balance-account" onclick="openImport('revolut')" style="cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:80px">
         <div class="balance-account-name">REVOLUT</div>
         <div class="balance-account-amt"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(revBalance)}</span></div>
-        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 Importar CSV</div>
+        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 CSV</div>
+      </div>
+      ${customBankBalances.map(b=>`
+      <div class="balance-account" onclick="openImport('${b.id}')"
+        data-longpress="custombank|${b.id}|${b.name}"
+        style="cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:80px;user-select:none;position:relative">
+        <div class="balance-account-name">${b.emoji} ${b.name.toUpperCase()}</div>
+        <div class="balance-account-amt"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(b.balance)}</span></div>
+        <div style="font-size:9px;opacity:.7;margin-top:3px">📥 CSV</div>
+      </div>`).join('')}
+      <div class="balance-account" onclick="openAddBank()" style="cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.75">
+        <div style="font-size:20px;margin-bottom:4px">➕</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:.5px;opacity:.85">Añadir banco</div>
       </div>
     </div>
   </div>
@@ -1154,7 +1204,7 @@ function rResumen(){
       const pctOfBudget=budget?Math.min((amt/budget)*100,100):null;
       const overBudget=budget&&amt>budget;
       const barColor=overBudget?'var(--red)':budget?'var(--green)':'var(--orange)';
-      return `<div class="cat-row" onclick="openCategory(\'${cat}\')" style="cursor:pointer;background:var(--surface2);padding:10px;border-radius:12px;margin-bottom:8px">
+      return `<div class="cat-row" onclick="openCategory('${cat}')" data-longpress="budget|${cat}|${cat}" style="cursor:pointer;background:var(--surface2);padding:10px;border-radius:12px;margin-bottom:8px;user-select:none;-webkit-tap-highlight-color:transparent">
         <div class="cat-header">
           <span class="cat-name">${allCats()[cat]||'📦'} ${cat}</span>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1340,7 +1390,7 @@ function rMovimientos(){
       <div class="mov-info">
         <div class="mov-desc">${m.desc}</div>
         <div class="mov-meta" style="flex-wrap:wrap;gap:4px">
-          <span class="src-dot" style="background:${SOURCES[m.source]?.dot||'#8A7A65'}"></span>
+          <span class="src-dot" style="background:${allSources()[m.source]?.dot||'#8A7A65'}"></span>
           <select onchange="changeCatMovement('${m.id}',this.value)" style="background:transparent;border:none;color:var(--muted);font-size:11px;font-family:inherit;padding:0;cursor:pointer;outline:none;max-width:120px">
             ${Object.entries(allCats()).map(([c,e])=>`<option value="${c}" ${m.category===c?'selected':''}>${e} ${c}</option>`).join('')}
           </select>
@@ -1482,7 +1532,7 @@ function rDeudas(){
         <div>
           <div class="sub-name">${d.name}</div>
           <div class="sub-detail">Pendiente: ${fmt(d.remaining)} de ${fmt(d.total)}${months?` · ~${months} meses`:''}</div>
-          ${d.source?`<div style="margin-top:3px"><span class="tag" style="font-size:10px;color:${SOURCES[d.source]?.dot};border-color:${SOURCES[d.source]?.dot}44;background:${SOURCES[d.source]?.bg}">${SOURCES[d.source]?.label}</span></div>`:''}
+          ${d.source?`<div style="margin-top:3px"><span class="tag" style="font-size:10px;color:${allSources()[d.source]?.dot};border-color:${allSources()[d.source]?.dot}44;background:${allSources()[d.source]?.bg}">${allSources()[d.source]?.label}</span></div>`:''}
         </div>
         <span class="tag" style="color:${d.color};border-color:${d.color}44;background:${d.color}18">${pct}% pagado</span>
       </div>
@@ -1731,6 +1781,13 @@ window.confirmDelete = (type, id, name)=>{
   _confirmCb = ()=>{
     if(type==='debt')  { S.debts  =S.debts.filter(d=>d.id!==id); S.analysis=null; }
     if(type==='saving'){ S.savings=S.savings.filter(s=>s.id!==id); }
+    if(type==='budget'){ delete S.budgets[id]; }
+    if(type==='custombank'){
+      S.customBanks=(S.customBanks||[]).filter(b=>b.id!==id);
+      S.movements=S.movements.filter(m=>m.source!==id);
+      delete S.realBalance[id];
+      S.analysis=null;
+    }
     closeConfirm(); render(); toast('🗑 Eliminado');
   };
   const m=document.getElementById('confirm-modal');
@@ -1900,16 +1957,28 @@ let _importSource = 'bbva';
 window.openImport = (source)=>{
   _importSource = source;
   const isBBVA = source==='bbva';
+  const isRevolut = source==='revolut';
+  const customBank = (S.customBanks||[]).find(b=>b.id===source);
   document.getElementById('import-sheet').style.display='block';
-  document.getElementById('import-sheet-title').textContent = isBBVA ? '🏦 Importar BBVA' : '💜 Importar Revolut';
-  document.getElementById('import-sheet-icon').textContent = isBBVA ? '🏦' : '💜';
-  document.getElementById('import-sheet-tip').innerHTML = isBBVA
-    ? 'En BBVA online: <strong>Mis productos → Movimientos → Descargar → CSV</strong>'
-    : 'En Revolut app: <strong>Perfil → Extractos → Descarga CSV</strong>';
-  const n = S.movements.filter(m=>m.source===source).length;
-  document.getElementById('import-sheet-count').textContent = n ? n+' movimientos de '+( isBBVA?'BBVA':'Revolut')+' ya cargados' : '';
 
-  // Bind file input
+  if(isBBVA){
+    document.getElementById('import-sheet-title').textContent='🏦 Importar BBVA';
+    document.getElementById('import-sheet-icon').textContent='🏦';
+    document.getElementById('import-sheet-tip').innerHTML='En BBVA online: <strong>Mis productos → Movimientos → Descargar → CSV</strong>';
+  } else if(isRevolut){
+    document.getElementById('import-sheet-title').textContent='💜 Importar Revolut';
+    document.getElementById('import-sheet-icon').textContent='💜';
+    document.getElementById('import-sheet-tip').innerHTML='En Revolut app: <strong>Perfil → Extractos → Descarga CSV</strong>';
+  } else if(customBank){
+    document.getElementById('import-sheet-title').textContent=`${customBank.emoji} Importar ${customBank.name}`;
+    document.getElementById('import-sheet-icon').textContent=customBank.emoji;
+    document.getElementById('import-sheet-tip').innerHTML=`Importa el CSV de <strong>${customBank.name}</strong>. Formatos compatibles: BBVA, Revolut, o CSV genérico con columnas de fecha, descripción e importe.`;
+  }
+
+  const n = S.movements.filter(m=>m.source===source).length;
+  const srcLabel = customBank?customBank.name:(isBBVA?'BBVA':'Revolut');
+  document.getElementById('import-sheet-count').textContent = n ? `${n} movimientos de ${srcLabel} ya cargados` : '';
+
   const fi = document.getElementById('import-file-input');
   fi.value = '';
   fi.onchange = async e=>{
@@ -1918,7 +1987,6 @@ window.openImport = (source)=>{
     await handleImport(e.target.files[0], _importSource);
   };
 
-  // Drag and drop
   const dz = document.getElementById('import-drop-zone');
   dz.ondragover = e=>{ e.preventDefault(); dz.style.borderColor='var(--orange)'; dz.style.background='var(--orange-bg)'; };
   dz.ondragleave = ()=>{ dz.style.borderColor=''; dz.style.background=''; };
@@ -2264,6 +2332,81 @@ window.addCatFromBudget=()=>{
   toast('✅ Categoría añadida — ahora pon el límite y guarda');
 };
 
+// ── ADD BANK MODAL ───────────────────────────────────
+let _selectedBankColor = '#3498DB';
+let _pendingBankFile = null;
+
+window.openAddBank = ()=>{
+  _pendingBankFile = null;
+  _selectedBankColor = '#3498DB';
+  document.getElementById('nb-emoji').value = '';
+  document.getElementById('nb-name').value = '';
+  document.getElementById('nb-file-label').textContent = 'Selecciona el CSV del banco';
+  document.getElementById('nb-file-icon').textContent = '📄';
+  document.getElementById('nb-save-btn').disabled = true;
+  document.getElementById('nb-save-btn').style.opacity = '.45';
+  // Reset color selection
+  document.querySelectorAll('.bank-color-swatch').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.color==='#3498DB');
+  });
+  document.getElementById('add-bank-modal').style.display='flex';
+
+  // File input binding
+  const fi = document.getElementById('nb-file-input');
+  fi.value='';
+  fi.onchange = e=>{
+    const f=e.target.files[0];
+    if(!f) return;
+    _pendingBankFile = f;
+    document.getElementById('nb-file-label').textContent = f.name;
+    document.getElementById('nb-file-icon').textContent = '✅';
+    document.getElementById('nb-save-btn').disabled = false;
+    document.getElementById('nb-save-btn').style.opacity = '1';
+  };
+
+  // Drag and drop
+  const dz = document.getElementById('nb-drop-zone');
+  dz.ondragover = e=>{ e.preventDefault(); dz.style.borderColor='var(--orange)'; dz.style.background='var(--orange-bg)'; };
+  dz.ondragleave = ()=>{ dz.style.borderColor=''; dz.style.background=''; };
+  dz.ondrop = e=>{
+    e.preventDefault(); dz.style.borderColor=''; dz.style.background='';
+    const f=e.dataTransfer.files[0];
+    if(!f) return;
+    _pendingBankFile = f;
+    document.getElementById('nb-file-label').textContent = f.name;
+    document.getElementById('nb-file-icon').textContent = '✅';
+    document.getElementById('nb-save-btn').disabled = false;
+    document.getElementById('nb-save-btn').style.opacity = '1';
+  };
+};
+
+window.closeAddBank = ()=>{ document.getElementById('add-bank-modal').style.display='none'; };
+
+window.selectBankColor = (color)=>{
+  _selectedBankColor = color;
+  document.querySelectorAll('.bank-color-swatch').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.color===color);
+  });
+};
+
+window.confirmAddBank = async ()=>{
+  const name = document.getElementById('nb-name').value.trim();
+  const emoji = document.getElementById('nb-emoji').value.trim() || '🏦';
+  if(!name) return toast('⚠️ Ponle un nombre al banco');
+  if(!_pendingBankFile) return toast('⚠️ Selecciona el archivo CSV');
+
+  // Create unique id
+  const id = 'bank_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + uid();
+
+  // Register bank
+  if(!S.customBanks) S.customBanks=[];
+  S.customBanks.push({id, name, emoji, color:_selectedBankColor});
+  S.realBalance[id] = null;
+
+  closeAddBank();
+  await handleImport(_pendingBankFile, id);
+};
+
 window.openSettings  = openSettings;
 window.openModal     = openModal;
 window.openCatDetail = openCatDetail;
@@ -2336,6 +2479,44 @@ render();
     </div>
   </div>
 </div>
+
+<!-- Add bank modal -->
+<div id="add-bank-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeAddBank()"></div>
+  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;padding:24px 20px calc(var(--safe-bottom)+28px);animation:slideUp .25s ease">
+    <div style="font-weight:800;font-size:17px;color:var(--text);margin-bottom:6px;padding-right:36px">🏦 Añadir banco</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.5">Dale un nombre a tu banco e importa su CSV. La IA clasificará los movimientos automáticamente.</div>
+    <button onclick="closeAddBank()" style="position:absolute;top:22px;right:18px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:14px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center">✕</button>
+    <div class="form-group">
+      <div style="display:flex;gap:8px">
+        <input id="nb-emoji" placeholder="🏦" style="max-width:56px;text-align:center;font-size:20px;padding:9px 6px"/>
+        <input id="nb-name" placeholder="Nombre del banco (ej: Santander, ING…)" style="flex:1"/>
+      </div>
+      <!-- Color picker -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Color</div>
+        <div id="nb-colors" style="display:flex;gap:8px;flex-wrap:wrap">
+          ${['#E74C3C','#E67E22','#F1C40F','#2ECC71','#1ABC9C','#3498DB','#9B59B6','#E91E63','#607D8B'].map((col,i)=>`
+            <div onclick="selectBankColor('${col}')" data-color="${col}"
+              style="width:28px;height:28px;border-radius:50%;background:${col};cursor:pointer;transition:transform .15s;border:2px solid transparent"
+              class="bank-color-swatch ${i===5?'selected':''}"></div>`).join('')}
+        </div>
+      </div>
+      <!-- File drop zone -->
+      <div id="nb-drop-zone" style="border:2px dashed var(--border2);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;background:var(--surface2);position:relative;transition:all .25s;margin-top:4px">
+        <input type="file" id="nb-file-input" accept=".csv,.txt,.xls,.xlsx" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+        <div style="font-size:28px;margin-bottom:6px" id="nb-file-icon">📄</div>
+        <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:3px" id="nb-file-label">Selecciona el CSV del banco</div>
+        <div style="font-size:11px;color:var(--muted)">CSV · TXT · XLS · XLSX</div>
+      </div>
+      <button class="btn btn-full" onclick="confirmAddBank()" id="nb-save-btn" disabled style="opacity:.45">Añadir banco e importar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.bank-color-swatch.selected { transform:scale(1.25); border-color: var(--text) !important; }
+</style>
 
 </body>
 </html>
