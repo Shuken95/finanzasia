@@ -2425,6 +2425,76 @@ S.tab='Resumen'; // siempre abre en Resumen
 applyDark();
 applyHideAmounts();
 render();
+
+// ===================== IA PRO MAX SYSTEM =====================
+
+// Normalización
+function normalize(text){
+  return text
+    .toLowerCase()
+    .replace(/[0-9]/g, "")
+    .replace(/[^a-z\s]/g, "")
+    .trim();
+}
+
+// Memoria usuario
+function saveUserCorrection(texto, categoria){
+  let memory = JSON.parse(localStorage.getItem("ai_memory") || "{}");
+  memory[texto.toLowerCase()] = categoria;
+  localStorage.setItem("ai_memory", JSON.stringify(memory));
+}
+
+function checkMemory(texto){
+  let memory = JSON.parse(localStorage.getItem("ai_memory") || "{}");
+  return memory[texto.toLowerCase()] || null;
+}
+
+// Detección suscripciones
+function isSubscription(texto){
+  const subs = ["netflix","spotify","amazon","basicfit","gym","hbo"];
+  return subs.some(s => texto.includes(s));
+}
+
+// IA call
+async function classifyTransaction(texto){
+  try{
+    const res = await fetch('/.netlify/functions/classify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:texto})
+    });
+    const data = await res.json();
+    if(data && data.category){
+      return data.category;
+    }
+  }catch(e){
+    console.log('IA error',e);
+  }
+  return null;
+}
+
+// Sistema inteligente completo
+async function smartCategorize(texto, fallbackFn){
+
+  texto = normalize(texto);
+
+  // 1. Memoria
+  let mem = checkMemory(texto);
+  if(mem) return mem;
+
+  // 2. Reglas rápidas
+  if(isSubscription(texto)) return "Suscripciones";
+
+  // 3. IA
+  let ia = await classifyTransaction(texto);
+  if(ia) return ia;
+
+  // 4. Fallback
+  return fallbackFn ? fallbackFn(texto) : "Otros";
+}
+
+// ============================================================
+
 </script>
 
 <!-- Category detail modal -->
