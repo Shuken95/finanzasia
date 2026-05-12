@@ -379,6 +379,22 @@
           </div>
         </div>
 
+        <!-- API Key Anthropic -->
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;text-align:center;padding:0 20px">Inteligencia Artificial</div>
+        <div style="background:var(--surface2);border-radius:16px;padding:18px;margin-bottom:24px">
+          <div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:4px">🔑 API Key de Anthropic</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            Necesaria para clasificar movimientos con IA y generar análisis. Obtén tu clave en
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--orange);text-decoration:none">console.anthropic.com</a>.
+            Se guarda solo en este dispositivo.
+          </div>
+          <div style="display:flex;gap:8px">
+            <input id="api-key-input" type="password" placeholder="sk-ant-..." style="flex:1;font-size:12px;font-family:'JetBrains Mono',monospace"/>
+            <button class="btn btn-sm" onclick="saveApiKey()">Guardar</button>
+          </div>
+          <div id="api-key-status" style="font-size:11px;margin-top:8px;color:var(--muted)"></div>
+        </div>
+
         <!-- Zona peligrosa -->
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--red);margin-bottom:10px;text-align:center;padding:0 20px">Zona peligrosa</div>
         <div style="background:var(--red-bg);border:1px solid rgba(192,57,43,.2);border-radius:16px;padding:18px;margin-bottom:8px">
@@ -762,14 +778,34 @@ function toast(msg){
 }
 
 // ═══════════════════════════════════════════════════
-// CLAUDE API
+// CLAUDE API — llamada directa al navegador
 // ═══════════════════════════════════════════════════
-async function claude(prompt,max=400){
-  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_tokens:max,messages:[{role:'user',content:prompt}]})});
+function getApiKey(){
+  return S.anthropicApiKey||localStorage.getItem('anthropic_api_key')||'';
+}
+
+async function claude(prompt,max=400,messagesArr=null){
+  const key=getApiKey();
+  if(!key) throw new Error('API key no configurada — ve a ⚙️ Ajustes y añade tu clave de Anthropic');
+  const messages=messagesArr||[{role:'user',content:prompt}];
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:max,
+      messages
+    })
+  });
   const text=await r.text();
-  if(!r.ok) throw new Error('HTTP '+r.status+': '+text.slice(0,150));
+  if(!r.ok) throw new Error('API error '+r.status+': '+text.slice(0,200));
   let d;
-  try{d=JSON.parse(text);}catch(e){throw new Error('Respuesta invalida: '+text.slice(0,150));}
+  try{d=JSON.parse(text);}catch(e){throw new Error('Respuesta inválida: '+text.slice(0,150));}
   return d.content?.[0]?.text?.trim()||'';
 }
 
@@ -1006,8 +1042,33 @@ function openSettings(){
   document.getElementById('settings-modal').style.display='block';
   const dm=document.getElementById('dark-toggle-modal');
   if(dm)dm.checked=!!S.dark;
+  // Populate API key field
+  const keyInput=document.getElementById('api-key-input');
+  if(keyInput){
+    const k=getApiKey();
+    keyInput.value=k?k:'';
+    const status=document.getElementById('api-key-status');
+    if(status) status.textContent=k?'✅ API key guardada':'⚠️ Sin API key — la IA no funcionará';
+    status.style.color=k?'var(--green)':'var(--red)';
+  }
+  const cs=document.getElementById('currency-select');
+  if(cs) cs.value=S.currency||'EUR';
   renderCustomCats();
 }
+
+window.saveApiKey=()=>{
+  const val=document.getElementById('api-key-input')?.value?.trim()||'';
+  if(!val){
+    toast('⚠️ Introduce una API key válida');
+    return;
+  }
+  S.anthropicApiKey=val;
+  localStorage.setItem('anthropic_api_key',val);
+  saveState();
+  const status=document.getElementById('api-key-status');
+  if(status){status.textContent='✅ API key guardada';status.style.color='var(--green)';}
+  toast('✅ API key guardada');
+};
 function closeSettings(){document.getElementById('settings-modal').style.display='none';}
 
 function renderCustomCats(){
@@ -1735,11 +1796,7 @@ window.sendChat = async ()=>{
   addThinking();
 
   try{
-    const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({fast:true,max_tokens:300,messages})});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const d=await r.json();
-    const reply=d.content?.[0]?.text?.trim()||'No pude generar respuesta.';
+    const reply=await claude('',300,messages);
     S.chatHistory=S.chatHistory.filter(m=>!m.thinking);
     S.chatHistory.push({role:'assistant',text:reply});
   }catch(e){
@@ -1876,11 +1933,7 @@ async function generateTips(){
     +'Top gastos: '+(topG||'sin datos')+'\n'
     +'Deudas: '+(S.debts.map(d=>d.name+' '+fmt(d.remaining)).join(', ')||'ninguna')+'\n'
     +'Responde con 3 líneas: emoji + consejo concreto con cifras. Sin introducción ni conclusión.';
-  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fast:true,max_tokens:250,messages:[{role:'user',content:prompt}]})});
-  if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t.slice(0,100));}
-  const d=await r.json();
-  return d.content?.[0]?.text?.trim()||'';
+  return await claude(prompt,250);
 }
 
 async function runAnalysis(){
@@ -1901,13 +1954,7 @@ async function runAnalysis(){
     +'ing='+Math.round(c.totalIn)+' gst='+Math.round(c.realOut)+' deu='+Math.round(debtTotal)
     +' cuot='+Math.round(debtMon)+' aho='+Math.round(ahorros)+' top='+topG+' deudas='+dStr;
 
-  const r=await fetch('/api/claude',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fast:true, max_tokens:350, messages:[{role:'user',content:prompt}]})
-  });
-  if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t.slice(0,120));}
-  const d=await r.json();
-  const raw=(d.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+  const raw=(await claude(prompt,350)).replace(/```json|```/g,'').trim();
   // Extract JSON even if there's surrounding text
   const jsonMatch=raw.match(/\{[\s\S]*\}/);
   if(!jsonMatch) throw new Error('Sin JSON en respuesta: '+raw.slice(0,150));
@@ -1942,7 +1989,7 @@ function bindEvents(){
       S.tips=await generateTips();
       S.tipsDate=new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
     }catch(e){
-      S.tips='⚠️ Error al conectar. Comprueba la API key en Netlify → Environment variables → ANTHROPIC_API_KEY';
+      S.tips='⚠️ Error al conectar con la IA. Comprueba tu API key en ⚙️ Ajustes → API Key de Anthropic';
       S.tipsDate='';
     }
     render();
@@ -2429,6 +2476,11 @@ document.getElementById('settings-btn').onclick      = openSettings;
 document.getElementById('fab').onclick               = openModal;
 
 S.tab='Resumen'; // siempre abre en Resumen
+// Restaurar API key si no estaba en el estado guardado
+if(!S.anthropicApiKey){
+  const savedKey=localStorage.getItem('anthropic_api_key');
+  if(savedKey) S.anthropicApiKey=savedKey;
+}
 applyDark();
 applyHideAmounts();
 render();
