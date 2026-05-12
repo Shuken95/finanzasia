@@ -431,7 +431,7 @@
 </div>
 
 <!-- Confirm delete modal -->
-<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;padding:24px">
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center;padding:24px">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeConfirm()"></div>
   <div style="position:relative;background:var(--surface);border-radius:20px;width:100%;max-width:320px;padding:24px;box-shadow:var(--shadow-md);z-index:1">
     <div style="font-weight:800;font-size:16px;color:var(--text);margin-bottom:8px">¿Eliminar?</div>
@@ -758,7 +758,7 @@ ${lines}`,
 
       for(const line of r.split('\n')){
 
-        const m=line.match(/^(\\d+)[.)\\s]+(.+)$/);
+        const m=line.match(/^(\d+)[.)\s]+(.+)$/);
 
         if(m){
 
@@ -1682,6 +1682,15 @@ window.closeConfirm = ()=>{
   document.addEventListener('touchcancel',()=>{ clearTimeout(timer); },{passive:true});
 })();
 
+
+// ─── Open/Close add-debt modal ──────────────────────
+window.openAddDebt  = ()=>{ document.getElementById('add-debt-modal').style.display='block'; };
+window.closeAddDebt = ()=>{ document.getElementById('add-debt-modal').style.display='none'; };
+
+// ─── Open/Close add-saving modal ────────────────────
+window.openAddSaving  = ()=>{ document.getElementById('add-saving-modal').style.display='block'; };
+window.closeAddSaving = ()=>{ document.getElementById('add-saving-modal').style.display='none'; };
+
 // ─── Bind add-debt form ─────────────────────────────
 function bindAddDebtModal(){
   const btn=document.getElementById('nd-save-btn');
@@ -1747,12 +1756,10 @@ async function runAnalysis(){
 
   // Ultra-compact prompt for Haiku — fits comfortably in 10s timeout
   const prompt=
-    'JSON financiero sin markdown, 1 linea:
-'
+    'JSON financiero sin markdown, 1 linea:\n'
     +'{"p":<0-100>,"c":"<green|orange|red>","r":"<1frase>","f":["<a>","<b>"],"m":["<a>","<b>"],'
     +'"pl":[{"t":"<titulo>","d":"<1frase>","pr":"<alta|media|baja>"},{"t":"<t>","d":"<d>","pr":"<p>"},{"t":"<t>","d":"<d>","pr":"<p>"}],'
-    +'"e":"<estrategia deudas 1frase>","a":<numero>}
-'
+    +'"e":"<estrategia deudas 1frase>","a":<numero>}\n'
     +'ing='+Math.round(c.totalIn)+' gst='+Math.round(c.realOut)+' deu='+Math.round(debtTotal)
     +' cuot='+Math.round(debtMon)+' aho='+Math.round(ahorros)+' top='+topG+' deudas='+dStr;
 
@@ -2036,6 +2043,23 @@ window.changeCatMovement = (id, cat)=>{
 };
 window.closeModal    = ()=>{ document.getElementById('quick-modal').style.display='none'; };
 window.closeSettings = ()=>{ document.getElementById('settings-modal').style.display='none'; };
+function openCatDetail(cat){
+  const cats=allCats();
+  const emoji=cats[cat]||'📦';
+  const movs=S.movements.filter(m=>m.category===cat&&m.type==='expense');
+  const total=movs.reduce((s,m)=>s+m.amount,0);
+  document.getElementById('cat-detail-title').textContent=emoji+' '+cat;
+  document.getElementById('cat-detail-sub').textContent=movs.length+' movimientos · Total: '+fmt(total);
+  document.getElementById('cat-detail-list').innerHTML=movs.length?movs.map(m=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:10px;padding:10px 13px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${m.desc}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${m.date}</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--red)">${fmt(m.amount)}</div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Sin movimientos</div>';
+  document.getElementById('cat-detail-modal').style.display='flex';
+}
 window.closeCatDetail= ()=>{ document.getElementById('cat-detail-modal').style.display='none'; };
 window.openSettings  = openSettings;
 window.openModal     = openModal;
@@ -2052,5 +2076,17 @@ document.getElementById('fab').onclick          = openModal;
 applyDark();
 render();
 </script>
+
+<!-- Category detail modal -->
+<div id="cat-detail-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center;padding:24px">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeCatDetail()"></div>
+  <div style="position:relative;background:var(--surface);border-radius:20px;width:100%;max-width:420px;padding:24px;box-shadow:var(--shadow-md);z-index:1;max-height:80dvh;overflow-y:auto">
+    <div style="font-weight:800;font-size:16px;color:var(--text);margin-bottom:4px" id="cat-detail-title"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="cat-detail-sub"></div>
+    <div id="cat-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button onclick="closeCatDetail()" class="btn btn-ghost btn-full" style="margin-top:20px">Cerrar</button>
+  </div>
+</div>
+
 </body>
 </html>
