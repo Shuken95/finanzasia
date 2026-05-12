@@ -1438,8 +1438,11 @@ function rAnalysis(){
   // Auto-generate tips card (always shown, generated automatically)
   const tipsCard = S.tips ? buildTipsCard() : buildTipsEmpty();
 
+  const contextCard = buildContextCard();
+
   if(!a){
     return `
+    ${contextCard}
     ${tipsCard}
     <div class="card card-orange" style="text-align:center;padding:36px 20px">
       ${S.analysisLoading?`
@@ -1462,6 +1465,7 @@ function rAnalysis(){
 
   const scoreColor={green:'var(--green)',orange:'var(--orange)',red:'var(--red)'}[a.color]||'var(--orange)';
   return `
+  ${contextCard}
   ${tipsCard}
 
   <div class="score-card">
@@ -1509,7 +1513,8 @@ function rAnalysis(){
     </div>`:''}
   </div>
 
-  <button class="btn btn-outline btn-full" id="run-analysis-btn">🔄 Regenerar análisis</button>`;
+  <button class="btn btn-outline btn-full" id="run-analysis-btn">🔄 Regenerar análisis</button>
+  ${buildChatInput()}`;
 }
 
 function buildTipsEmpty(){
@@ -1533,6 +1538,110 @@ function buildTipsCard(){
   </div>`;
 }
 
+
+function buildContextCard(){
+  return `<div class="card" style="padding:16px 18px">
+    <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:6px">🗒 Mi contexto financiero</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+      Cuéntale a la IA lo que los números no reflejan: transferencias entre cuentas, tipos de interés, pagas extra, gastos especiales, etc. Esto mejora la calidad de los consejos.
+    </div>
+    <textarea id="user-context-input"
+      placeholder="Ej: A principio de mes transfiero dinero de BBVA a Revolut para cubrir gastos del mes. Mi hipoteca tiene un tipo variable del 3.2%. Recibo paga extra en junio y diciembre de ~1.400€..."
+      style="width:100%;min-height:100px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none;transition:border-color .2s;line-height:1.6"
+      onfocus="this.style.borderColor='var(--orange)'"
+      onblur="this.style.borderColor='var(--border)'"
+    >${S.userContext||''}</textarea>
+    <button onclick="saveContext()" class="btn btn-full" style="margin-top:10px;font-size:13px">💾 Guardar contexto</button>
+  </div>`;
+}
+
+function buildChatInput(){
+  return `<div class="card" style="padding:16px 18px;margin-top:4px">
+    <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px">💬 Pregunta al asesor</div>
+    <div id="chat-history" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:300px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px">
+      <input id="chat-input" placeholder="¿Debería amortizar antes el préstamo del coche o Revolut?" style="flex:1;font-size:13px"/>
+      <button onclick="sendChat()" class="btn btn-sm" style="flex-shrink:0">Enviar</button>
+    </div>
+  </div>`;
+}
+
+window.sendChat = async ()=>{
+  const input = document.getElementById('chat-input');
+  const q = input?.value?.trim();
+  if(!q) return;
+  input.value='';
+
+  // Add user message to history
+  if(!S.chatHistory) S.chatHistory=[];
+  S.chatHistory.push({role:'user',text:q});
+  renderChatHistory();
+
+  const c=computed();
+  const debtTotal=S.debts.reduce((s,d)=>s+d.remaining,0);
+  const ctx = S.userContext?'\nMi contexto: '+S.userContext:'';
+  const systemInfo = 'Datos: saldo='+(S.realBalance.bbva||0)+(S.realBalance.revolut||0)
+    +'eu gastos='+Math.round(c.realOut)+'eu deuda='+Math.round(debtTotal)+'eu'
+    +' deudas='+S.debts.map(d=>d.name+' '+Math.round(d.remaining)+'eu al '+Math.round(d.monthly)+'eu/mes').join(', ')
+    +ctx;
+
+  // Build messages array with history
+  const messages = [
+    {role:'user', content:'Eres asesor financiero personal. '+systemInfo+'. Responde de forma concisa y práctica en español.'},
+    {role:'assistant', content:'Entendido, te ayudo con tu situación financiera.'},
+    ...S.chatHistory.slice(-6).flatMap((m,i,arr)=>
+      m.role==='user' ? [{role:'user',content:m.text}] :
+      [{role:'assistant',content:m.text}]
+    ).slice(0,-1), // remove last user (will be added below)
+    {role:'user', content:q}
+  ];
+
+  const addThinking = ()=>{
+    S.chatHistory.push({role:'assistant',text:'...',thinking:true});
+    renderChatHistory();
+  };
+  addThinking();
+
+  try{
+    const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fast:true,max_tokens:300,messages})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const reply=d.content?.[0]?.text?.trim()||'No pude generar respuesta.';
+    S.chatHistory=S.chatHistory.filter(m=>!m.thinking);
+    S.chatHistory.push({role:'assistant',text:reply});
+  }catch(e){
+    S.chatHistory=S.chatHistory.filter(m=>!m.thinking);
+    S.chatHistory.push({role:'assistant',text:'⚠️ Error: '+e.message});
+  }
+  saveState();
+  renderChatHistory();
+};
+
+function renderChatHistory(){
+  const el=document.getElementById('chat-history');
+  if(!el||!S.chatHistory) return;
+  el.innerHTML=(S.chatHistory||[]).map(m=>`
+    <div style="display:flex;justify-content:${m.role==='user'?'flex-end':'flex-start'}">
+      <div style="max-width:85%;padding:9px 13px;border-radius:${m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px'};
+        background:${m.role==='user'?'var(--orange)':'var(--surface2)'};
+        color:${m.role==='user'?'#fff':'var(--text)'};
+        font-size:13px;line-height:1.6;${m.thinking?'opacity:.5':''}">
+        ${m.text}
+      </div>
+    </div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+window.saveContext = ()=>{
+  const val = document.getElementById('user-context-input')?.value?.trim()||'';
+  S.userContext = val;
+  saveState();
+  // Reset tips and analysis so they regenerate with new context
+  S.tips=''; S.tipsDate=''; S.analysis=null;
+  toast('✅ Contexto guardado — regenera los consejos para aplicarlo');
+  render();
+};
 
 // ── Confirm delete ──────────────────────────────────
 let _confirmCb = null;
@@ -1675,6 +1784,9 @@ function bindEvents(){
   };
 
   // Tips button
+  // Render chat history if on analysis tab
+  if(S.tab==='Análisis IA') renderChatHistory();
+
   const gt=document.getElementById('gen-tips-btn');
   if(gt) gt.onclick=async()=>{
     gt.innerHTML='<span class="spin"></span>';gt.disabled=true;
