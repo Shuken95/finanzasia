@@ -1,0 +1,118 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/index.html b/index.html
+index 6122a649edeb3186c4378d975924cf8bcd118ca1..e46a9999728d9aedcefe3e0628108ed354e79825 100644
+--- a/index.html
++++ b/index.html
+@@ -743,104 +743,59 @@
+         </svg>
+         <div style="flex:1;min-width:0">
+           <div id="amort-title" style="font-weight:800;font-size:17px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+           <div id="amort-sub" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
+         </div>
+         <button onclick="closeAmort()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:34px;height:34px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">✕</button>
+       </div>
+       <div style="overflow-y:auto;padding:0 26px calc(var(--safe-bottom)+28px)">
+         <div id="amort-hero" style="display:flex;gap:8px;margin-bottom:16px"></div>
+         <div style="background:var(--surface2);border-radius:16px;padding:16px;margin-bottom:16px">
+           <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:14px">📉 Evolución del saldo pendiente</div>
+           <canvas id="amort-chart"></canvas>
+         </div>
+         <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px">📋 Primeros pagos</div>
+         <div id="amort-table"></div>
+       </div>
+     </div>
+   </div>
+ </div>
+ 
+ <script>
+ // ═══════════════════════════════════════════════════
+ // PWA — inline manifest + service worker
+ // ═══════════════════════════════════════════════════
+ (function(){
+-  // ── Inline SVG icon as data URI ──
+-  // ── PWA icon — usar archivo real (no Blob) para que funcione en launcher ──
+-  const iconUrl192 = './icons/icon-192.png';
+-  const iconUrl512 = './icons/icon-512.png';
+-  document.getElementById('pwa-icon').href       = iconUrl192;
++  // ── PWA icon y manifest estáticos (requisito para instalación fiable en Chrome) ──
++  const iconUrl192 = '/icons/icon-192.png';
++  document.getElementById('pwa-icon').href = iconUrl192;
+   document.getElementById('pwa-apple-icon').href = iconUrl192;
+-
+-  // ── Inline manifest via blob ──
+-  const manifest = {
+-    name: 'FinancialAPP',
+-    short_name: 'FinancialAPP',
+-    description: 'Gestión inteligente de finanzas personales',
+-    start_url: '.',
+-    display: 'standalone',
+-    orientation: 'portrait',
+-    background_color: '#F5F0E8',
+-    theme_color: '#CC785C',
+-    icons: [
+-      { src: iconUrl192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+-      { src: iconUrl512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+-    ]
+-  };
+-  const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+-  document.getElementById('pwa-manifest').href = URL.createObjectURL(mBlob);
++  document.getElementById('pwa-manifest').href = '/manifest.json';
+ 
+   // ── Service worker con detección de actualizaciones ──
+   if('serviceWorker' in navigator){
+-    const swCode = `
+-      const CACHE='finanzas-v2';
+-      self.addEventListener('install', e=>{
+-        // NO llamamos skipWaiting aquí — esperamos confirmación del usuario
+-        e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['.'])));
+-      });
+-      self.addEventListener('activate', e=>{
+-        // Limpia cachés antiguas al activar
+-        e.waitUntil(
+-          caches.keys().then(keys=>Promise.all(
+-            keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))
+-          )).then(()=>self.clients.claim())
+-        );
+-      });
+-      self.addEventListener('fetch', e=>{
+-        e.respondWith(
+-          caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('.')))
+-        );
+-      });
+-      // Mensaje desde la app para activar update
+-      self.addEventListener('message', e=>{
+-        if(e.data==='SKIP_WAITING') self.skipWaiting();
+-      });
+-    `;
+-    const swBlob = new Blob([swCode], {type:'application/javascript'});
+-    const swUrl  = URL.createObjectURL(swBlob);
+-    navigator.serviceWorker.register(swUrl, {scope: './'})
++    navigator.serviceWorker.register('/sw.js', {scope: '/'})
+       .then(reg=>{
+         // Detectar cuando hay un nuevo SW esperando
+         reg.addEventListener('updatefound', ()=>{
+           const newWorker = reg.installing;
+           newWorker.addEventListener('statechange', ()=>{
+             if(newWorker.state==='installed' && navigator.serviceWorker.controller){
+               // Hay una nueva versión lista — mostrar banner
+               window._pendingSW = newWorker;
+               document.getElementById('update-bar').classList.add('show');
+             }
+           });
+         });
+         // Comprobar actualizaciones al abrir la app
+         reg.update();
+       })
+       .catch(err=>console.warn('SW:', err));
+ 
+     // Cuando el nuevo SW toma el control, recarga para aplicar cambios
+     navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+       window.location.reload();
+     });
+   }
+ })();
+ 
+ // ═══════════════════════════════════════════════════
+ 
+EOF
+)
