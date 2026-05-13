@@ -765,60 +765,15 @@
 // PWA — inline manifest + service worker
 // ═══════════════════════════════════════════════════
 (function(){
-  // ── Inline SVG icon as data URI ──
-  // ── PWA icon — usar archivo real (no Blob) para que funcione en launcher ──
-  const iconUrl192 = './icons/icon-192.png';
-  const iconUrl512 = './icons/icon-512.png';
-  document.getElementById('pwa-icon').href       = iconUrl192;
+  // ── PWA icon y manifest estáticos (requisito para instalación fiable en Chrome) ──
+  const iconUrl192 = '/icons/icon-192.png';
+  document.getElementById('pwa-icon').href = iconUrl192;
   document.getElementById('pwa-apple-icon').href = iconUrl192;
-
-  // ── Inline manifest via blob ──
-  const manifest = {
-    name: 'FinancialAPP',
-    short_name: 'FinancialAPP',
-    description: 'Gestión inteligente de finanzas personales',
-    start_url: '.',
-    display: 'standalone',
-    orientation: 'portrait',
-    background_color: '#F5F0E8',
-    theme_color: '#CC785C',
-    icons: [
-      { src: iconUrl192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-      { src: iconUrl512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-    ]
-  };
-  const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-  document.getElementById('pwa-manifest').href = URL.createObjectURL(mBlob);
+  document.getElementById('pwa-manifest').href = '/manifest.json';
 
   // ── Service worker con detección de actualizaciones ──
   if('serviceWorker' in navigator){
-    const swCode = `
-      const CACHE='finanzas-v2';
-      self.addEventListener('install', e=>{
-        // NO llamamos skipWaiting aquí — esperamos confirmación del usuario
-        e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['.'])));
-      });
-      self.addEventListener('activate', e=>{
-        // Limpia cachés antiguas al activar
-        e.waitUntil(
-          caches.keys().then(keys=>Promise.all(
-            keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))
-          )).then(()=>self.clients.claim())
-        );
-      });
-      self.addEventListener('fetch', e=>{
-        e.respondWith(
-          caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('.')))
-        );
-      });
-      // Mensaje desde la app para activar update
-      self.addEventListener('message', e=>{
-        if(e.data==='SKIP_WAITING') self.skipWaiting();
-      });
-    `;
-    const swBlob = new Blob([swCode], {type:'application/javascript'});
-    const swUrl  = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl, {scope: './'})
+    navigator.serviceWorker.register('/sw.js', {scope: '/'})
       .then(reg=>{
         // Detectar cuando hay un nuevo SW esperando
         reg.addEventListener('updatefound', ()=>{
