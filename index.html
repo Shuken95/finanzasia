@@ -159,7 +159,7 @@
 
     /* ── QUICK EXPENSE MODAL ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0;animation:fadeIn .2s ease}
-    .modal{background:var(--surface);border-radius:24px 24px 0 0;padding:0 0 calc(var(--safe-bottom)+28px);width:100%;max-width:680px;animation:slideUp .25s ease}
+    .modal{background:var(--surface);border-radius:24px 24px 0 0;padding:0 0 calc(var(--safe-bottom)+28px);width:100%;max-width:100%;animation:slideUp .25s ease}
     /* Drag handle */
     .modal-handle{width:36px;height:4px;background:var(--border2);border-radius:99px;margin:12px auto 0;flex-shrink:0}
     /* Modal header */
@@ -313,6 +313,10 @@
     /* ── HIDDEN AMOUNTS ── */
     .amt-hidden{filter:blur(6px);user-select:none;pointer-events:none;transition:filter .25s}
     #hide-amounts-btn.active{color:var(--orange);border-color:var(--orange);background:var(--orange-bg)}
+  
+    .amt-hidden { transition: filter 0.3s ease; }
+    body.is-masked .amt-hidden { filter: blur(8px) !important; pointer-events: none; user-select: none; }
+
   </style>
 </head>
 <body>
@@ -732,19 +736,26 @@
 <!-- Amortization detail modal -->
 <div id="amort-modal" style="display:none">
   <div class="modal-overlay" onclick="closeAmort()">
-    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:24px 24px 14px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between">
-        <div>
-          <div id="amort-title" style="font-weight:800;font-size:18px;color:var(--text)"></div>
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:100%;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:20px 20px 14px;flex-shrink:0;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)">
+        <!-- Animated ring -->
+        <svg id="amort-ring-svg" width="64" height="64" viewBox="0 0 64 64" style="flex-shrink:0">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border2)" stroke-width="6"/>
+          <circle id="amort-ring-fill" cx="32" cy="32" r="26" fill="none" stroke-width="6"
+            stroke-dasharray="0 163.36" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+          <text id="amort-ring-pct" x="32" y="37" text-anchor="middle" font-size="13" font-weight="800" font-family="JetBrains Mono,monospace"></text>
+        </svg>
+        <div style="flex:1;min-width:0">
+          <div id="amort-title" style="font-weight:800;font-size:17px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
           <div id="amort-sub" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
         </div>
-        <button onclick="closeAmort()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:34px;height:34px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px">✕</button>
+        <button onclick="closeAmort()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:34px;height:34px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">✕</button>
       </div>
       <div style="overflow-y:auto;padding:0 26px calc(var(--safe-bottom)+28px)">
         <div id="amort-hero" style="display:flex;gap:8px;margin-bottom:16px"></div>
         <div style="background:var(--surface2);border-radius:16px;padding:16px;margin-bottom:16px">
           <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:14px">📉 Evolución del saldo pendiente</div>
-          <canvas id="amort-chart"></canvas>
+          <div id="amort-chart-container"></div>
         </div>
         <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px">📋 Primeros pagos</div>
         <div id="amort-table"></div>
@@ -925,7 +936,10 @@ function applyHideAmounts(){
     btn.title='Ocultar cantidades';
   }
 }
-function toggleHideAmounts(){S.hideAmounts=!S.hideAmounts;applyHideAmounts();saveState();render();}
+function toggleHideAmounts(){S.hideAmounts=!S.hideAmounts;applyHideAmounts();saveState();
+    // Aplicar máscara inicial sin flash
+    if (S.maskBalance) document.body.classList.add('is-masked');
+render();}
 
 
 function normalizeText(t=''){
@@ -2664,6 +2678,28 @@ window.openAmort = function(id){
   document.getElementById('amort-title').textContent = d.name;
   document.getElementById('amort-sub').textContent = `${pct}% pagado · ${months} meses restantes`;
 
+  // ── Animated ring ────────────────────────────────────
+  const amortCircumference = 2 * Math.PI * 26;
+  const amortRingFill = document.getElementById('amort-ring-fill');
+  const amortRingPct  = document.getElementById('amort-ring-pct');
+  amortRingFill.setAttribute('stroke', d.color);
+  amortRingFill.setAttribute('stroke-dasharray', `0 ${amortCircumference.toFixed(2)}`);
+  amortRingPct.textContent = '0%';
+  amortRingPct.setAttribute('fill', d.color);
+  const amortTargetDash = amortCircumference * (pct / 100);
+  let amortAnimStart = null;
+  const AMORT_ANIM_DUR = 900;
+  (function animateAmortRing(ts){
+    if(!amortAnimStart) amortAnimStart = ts;
+    const t = Math.min((ts - amortAnimStart) / AMORT_ANIM_DUR, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const dd = amortTargetDash * ease;
+    amortRingFill.setAttribute('stroke-dasharray', `${dd.toFixed(2)} ${(amortCircumference - dd).toFixed(2)}`);
+    amortRingPct.textContent = Math.round(pct * ease) + '%';
+    if(t < 1) requestAnimationFrame(animateAmortRing);
+    else amortRingPct.textContent = Math.round(pct) + '%';
+  })(performance.now());
+
   // ── Hero stats ─────────────────────────────────────
   const heroItems = [
     {l:'Pagado',     v:fmt(paid),          c:'var(--green)'},
@@ -2718,8 +2754,8 @@ window.openAmort = function(id){
 
   // ── Chart ───────────────────────────────────────────
   const chartHtml = `
-    <div style="background:var(--surface2);border-radius:16px;padding:16px;margin-bottom:16px">
-      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:14px">📉 Evolución del saldo pendiente</div>
+    <div style="background:var(--surface2);border-radius:16px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">📉 Evolución del saldo</div>
       <canvas id="amort-chart"></canvas>
       ${tinM>0?`<div style="margin-top:12px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px">Capital vs intereses acumulados</div>
@@ -2767,7 +2803,7 @@ window.openAmort = function(id){
     if(!canvas) return;
     const dpr = window.devicePixelRatio||1;
     const W = canvas.parentElement.clientWidth;
-    const H = 160;
+    const H = 120;
     canvas.width=W*dpr; canvas.height=H*dpr;
     canvas.style.width=W+'px'; canvas.style.height=H+'px';
     const ctx = canvas.getContext('2d');
@@ -3232,6 +3268,33 @@ function openBudgetDetail(cat){
 
   document.getElementById('bd-title').textContent=emoji+' '+cat;
   document.getElementById('bd-sub').textContent=movs.length+' movimientos este mes · '+fmt(total)+' gastado';
+
+  // ── Animated ring ────────────────────────────────────
+  const bdCircumference = 2 * Math.PI * 26;
+  const bdPct = budget ? Math.min((total / budget) * 100, 100) : 0;
+  const bdOver = budget && total > budget;
+  const bdColor = bdOver ? 'var(--red)' : budget ? 'var(--green)' : 'var(--orange)';
+  const bdRingFill = document.getElementById('bd-ring-fill');
+  const bdRingPct  = document.getElementById('bd-ring-pct');
+  bdRingFill.setAttribute('stroke', bdColor);
+  bdRingFill.setAttribute('stroke-dasharray', `0 ${bdCircumference.toFixed(2)}`);
+  bdRingPct.textContent = budget ? '0%' : '—';
+  bdRingPct.setAttribute('fill', bdColor);
+  if(budget){
+    const bdTargetDash = bdCircumference * (bdPct / 100);
+    let bdAnimStart = null;
+    const BD_ANIM_DUR = 900;
+    (function animateBdRing(ts){
+      if(!bdAnimStart) bdAnimStart = ts;
+      const t = Math.min((ts - bdAnimStart) / BD_ANIM_DUR, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const dd = bdTargetDash * ease;
+      bdRingFill.setAttribute('stroke-dasharray', `${dd.toFixed(2)} ${(bdCircumference - dd).toFixed(2)}`);
+      bdRingPct.textContent = Math.round(bdPct * ease) + '%';
+      if(t < 1) requestAnimationFrame(animateBdRing);
+      else bdRingPct.textContent = Math.round(bdPct) + '%';
+    })(performance.now());
+  }
 
   // Budget limit row
   const catOpts=Object.entries(cats).map(([c,e])=>`<option value="${c}" ${c===cat?'selected':''}>${e} ${c}</option>`).join('');
@@ -3966,13 +4029,20 @@ maybeShowOnboarding();
 <!-- Budget detail modal (movimientos por categoría + editar categoría) -->
 <div id="budget-detail-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeBudgetDetail()"></div>
-  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:88dvh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .25s ease">
-    <div style="padding:20px 26px 14px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--border)">
-      <div>
+  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:100%;max-height:88dvh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .25s ease">
+    <div style="padding:20px 20px 14px;flex-shrink:0;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)">
+      <!-- Animated ring -->
+      <svg id="bd-ring-svg" width="64" height="64" viewBox="0 0 64 64" style="flex-shrink:0">
+        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border2)" stroke-width="6"/>
+        <circle id="bd-ring-fill" cx="32" cy="32" r="26" fill="none" stroke-width="6"
+          stroke-dasharray="0 163.36" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        <text id="bd-ring-pct" x="32" y="37" text-anchor="middle" font-size="13" font-weight="800" font-family="JetBrains Mono,monospace"></text>
+      </svg>
+      <div style="flex:1;min-width:0">
         <div id="bd-title" style="font-weight:800;font-size:17px;color:var(--text)"></div>
         <div id="bd-sub" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
       </div>
-      <button onclick="closeBudgetDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px">✕</button>
+      <button onclick="closeBudgetDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">✕</button>
     </div>
     <!-- Budget limit row -->
     <div id="bd-budget-row" style="padding:14px 26px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0"></div>
@@ -3984,7 +4054,7 @@ maybeShowOnboarding();
 <!-- Add budget modal -->
 <div id="add-budget-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeAddBudget()"></div>
-  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;padding:0 0 calc(var(--safe-bottom)+28px);animation:slideUp .25s ease">
+  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:100%;padding:0 0 calc(var(--safe-bottom)+28px);animation:slideUp .25s ease">
     <div class="modal-handle"></div>
     <div class="modal-head">
       <div class="modal-head-text">
@@ -4026,7 +4096,7 @@ maybeShowOnboarding();
 <!-- Add bank modal -->
 <div id="add-bank-modal" style="display:none;position:fixed;inset:0;z-index:300;align-items:flex-end;justify-content:center">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeAddBank()"></div>
-  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:88dvh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .25s ease">
+  <div onclick="event.stopPropagation()" style="position:relative;background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:100%;max-height:88dvh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .25s ease">
     <div class="modal-handle"></div>
     <div class="modal-head" style="flex-shrink:0">
       <div class="modal-head-text">
@@ -4077,7 +4147,7 @@ maybeShowOnboarding();
 ════════════════════════════════════════════════════ -->
 <div id="saving-detail-modal" style="display:none">
   <div class="modal-overlay" onclick="closeSavingDetail()">
-    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:100%;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
       <div class="modal-handle"></div>
       <div style="padding:20px 24px 14px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between">
         <div>
@@ -4209,7 +4279,7 @@ maybeShowOnboarding();
      PRIVACY POLICY MODAL
 ════════════════════════════════════════════════════ -->
 <div id="privacy-modal" style="display:none;position:fixed;inset:0;z-index:510;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center">
-  <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:90dvh;display:flex;flex-direction:column;animation:slideUp .25s ease">
+  <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:100%;max-height:90dvh;display:flex;flex-direction:column;animation:slideUp .25s ease">
     <div style="padding:20px 24px 14px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
       <div style="font-weight:800;font-size:16px;color:var(--text)">🔒 Privacidad y datos</div>
       <button onclick="closePrivacyPolicy()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:32px;height:32px;font-size:14px;cursor:pointer;color:var(--muted)">✕</button>
