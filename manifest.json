@@ -1,16 +1,13 @@
-{
+   {
   "name": "FinancialAPP",
   "short_name": "FinancialAPP",
   "description": "Gestión inteligente de finanzas personales",
-
   "start_url": "./",
   "scope": "./",
-
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F5F0E8",
   "theme_color": "#CC785C",
-
   "icons": [
     {
       "src": "./icons/icon-192.png",
@@ -35,6 +32,9 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ]
+   }   "purpose": "maskable"
     }
   ]
 }
