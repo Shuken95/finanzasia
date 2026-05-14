@@ -4,7 +4,7 @@
 //      que la app instalada detecte la actualización
 //  Ejemplo: 'finanzas-v4', 'finanzas-v5', o la fecha '2026-05-13'
 // ─────────────────────────────────────────────
-const CACHE_VERSION = 'finanzas-v6'; // ← cambia esto en cada deploy
+const CACHE_VERSION = 'finanzas-v7'; // ← cambia esto en cada deploy
 
 // Archivos que se cachean al instalar.
 // El navegador compara su contenido para detectar cambios reales.
