@@ -219,9 +219,21 @@
     .btn-modal-action:active{opacity:.85}
 
     /* ── Centered card modal (tarjeta centrada, no bottom-sheet) ── */
-    .modal-overlay-center{align-items:center !important;padding:20px;animation:fadeIn .2s ease}
-    .modal-center{border-radius:22px !important;max-width:360px !important;width:100%;max-height:calc(100dvh - 40px);animation:cardIn .24s cubic-bezier(.2,.8,.2,1) !important;box-shadow:0 24px 60px rgba(0,0,0,.25),0 4px 14px rgba(0,0,0,.08)}
+    .modal-overlay-center{align-items:center !important;padding:24px;animation:fadeIn .2s ease}
+    .modal-center{border-radius:24px !important;max-width:360px !important;width:100%;max-height:calc(100dvh - 48px);overflow-y:auto;overflow-x:hidden;animation:cardIn .28s cubic-bezier(.2,.8,.2,1) !important;box-shadow:0 24px 60px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.07);padding:0 !important}
     .modal-center .modal-handle{display:none}
+    /* Tab onboarding redesign */
+    .tonb-wrap{padding:28px 24px 28px;display:flex;flex-direction:column;align-items:center;text-align:center}
+    .tonb-icon-wrap{width:64px;height:64px;border-radius:18px;background:var(--primary-bg);display:flex;align-items:center;justify-content:center;margin-bottom:16px;border:1px solid rgba(61,153,112,.15)}
+    .tonb-title{font-weight:800;font-size:20px;color:var(--text);letter-spacing:-.3px;margin-bottom:8px;line-height:1.2}
+    .tonb-desc{font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px;max-width:280px}
+    .tonb-items{width:100%;display:flex;flex-direction:column;gap:8px;margin-bottom:16px;text-align:left}
+    .tonb-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:var(--surface2);border-radius:11px;border:1px solid var(--border)}
+    .tonb-item-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .tonb-item-text{font-size:13px;color:var(--text2);font-weight:500;line-height:1.4}
+    .tonb-btn{width:100%;padding:15px;background:var(--green-700,#2C6E49);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 3px 12px rgba(44,110,74,.28);transition:opacity .15s;-webkit-tap-highlight-color:transparent}
+    .tonb-btn:active{opacity:.88}
+    .tonb-skip{font-size:12px;color:var(--muted);margin-top:10px;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:transparent;padding-bottom:2px}
     @keyframes cardIn{
       from{opacity:0;transform:scale(.94) translateY(8px)}
       to  {opacity:1;transform:scale(1) translateY(0)}
@@ -566,7 +578,12 @@
       </div>
       <!-- Header buttons top-right -->
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-        <div id="user-avatar-wrap" onclick="openUserMenu()" title="Tu cuenta" style="cursor:pointer"></div>
+        <div id="user-avatar-wrap" onclick="openUserMenu()" title="Tu cuenta" style="cursor:pointer">
+          <!-- Default: person icon when no session -->
+          <div class="icon-btn" style="width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.15)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
         <button onclick="openTabHelp()" id="help-btn" class="icon-btn" title="Ayuda de esta pantalla">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
@@ -1138,16 +1155,13 @@ async function handleAuthChange(event, session){
 function updateAvatarUI(user){
   const wrap = document.getElementById('user-avatar-wrap');
   if(!wrap) return;
-  if(user){
-    const name = user.user_metadata?.full_name || user.email || '';
-    const avatar = user.user_metadata?.avatar_url;
-    const initial = name.charAt(0).toUpperCase();
-    wrap.innerHTML = avatar
-      ? `<img src="${avatar}" class="user-avatar" alt="${name}" title="${name}"/>`
-      : `<div class="user-avatar-placeholder" title="${name}">${initial}</div>`;
-  } else {
-    wrap.innerHTML = '';
-  }
+  // Avatar genérico (SVG persona) tanto si hay usuario como si no.
+  // Mantiene los tonos verdes del header en lugar de mostrar la foto de Google.
+  const name = user ? (user.user_metadata?.full_name || user.email || '') : '';
+  const titleAttr = name ? ` title="${name.replace(/"/g,'&quot;')}"` : '';
+  wrap.innerHTML = `<div class="user-avatar-placeholder"${titleAttr} style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  </div>`;
 }
 
 // ── Cloud sync ──
@@ -1196,7 +1210,21 @@ function saveState(){
 // ── User menu ──
 window.openUserMenu = () => {
   if(!currentUser){
-    showLoginScreen();
+    // Show mini popup with login option
+    const existing = document.getElementById('user-menu-popup');
+    if(existing){ existing.remove(); return; }
+    const popup = document.createElement('div');
+    popup.id = 'user-menu-popup';
+    popup.style.cssText = `position:fixed;top:68px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;z-index:500;box-shadow:var(--shadow-md);min-width:210px;animation:fadeIn .15s ease`;
+    popup.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Sin sesión iniciada</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5">Inicia sesión para sincronizar tus datos entre dispositivos.</div>
+      <button onclick="showLoginScreen();document.getElementById('user-menu-popup')?.remove()" style="width:100%;padding:10px;background:var(--green-700,#2C6E49);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Iniciar sesión con Google
+      </button>`;
+    document.body.appendChild(popup);
+    setTimeout(()=> document.addEventListener('click', function h(){ popup.remove(); document.removeEventListener('click',h); }, {once:true}), 100);
     return;
   }
   const name = currentUser.user_metadata?.full_name || currentUser.email || 'Usuario';
@@ -5156,7 +5184,7 @@ S.tab='Resumen'; setTimeout(()=>{ updateBottomNav('Resumen'); updateHelpBtn('Res
 // ═══════════════════════════════════════════════════
 function maybeShowOnboarding(){
   if(!S.onboardingDone){
-    document.getElementById('onboarding-modal').style.display='block';
+    document.getElementById('onboarding-modal').style.display='flex';
   }
 }
 window.closeOnboarding=()=>{
@@ -5330,7 +5358,7 @@ window.skipProfileOnboarding = () => {
 // ═══════════════════════════════════════════════════
 const TAB_ONBOARDING_DATA = {
   resumen: {
-    icon: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
+    icon: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
     title: 'Tu resumen financiero',
     desc: 'Aquí tienes una visión global de tu situación económica en tiempo real.',
     items: [
@@ -5341,7 +5369,7 @@ const TAB_ONBOARDING_DATA = {
     doneKey: 'onboardingResumenDone'
   },
   estadisticas: {
-    icon: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+    icon: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
     title: 'Estadísticas y tendencias',
     desc: 'Analiza cómo evolucionan tus finanzas mes a mes con gráficos claros.',
     items: [
@@ -5352,7 +5380,7 @@ const TAB_ONBOARDING_DATA = {
     doneKey: 'onboardingEstadisticasDone'
   },
   analisis: {
-    icon: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><circle cx="18" cy="6" r="3" fill="var(--primary-bg)" stroke="var(--primary)"/><line x1="16.5" y1="4.5" x2="19.5" y2="7.5"/></svg>`,
+    icon: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><circle cx="18" cy="6" r="3" fill="var(--primary-bg)" stroke="var(--primary)"/></svg>`,
     title: 'Asesor IA financiero',
     desc: 'Tu asistente personal analiza tus datos y te da consejos adaptados a tu situación real.',
     items: [
@@ -5364,21 +5392,40 @@ const TAB_ONBOARDING_DATA = {
   }
 };
 
-function openTabOnboarding(tab){
-  if(S[TAB_ONBOARDING_DATA[tab].doneKey]) return;
+function buildTabModal(tab){
   const d = TAB_ONBOARDING_DATA[tab];
-  window._tabOnbCurrent = tab;
+  const hasCTA = (tab === 'analisis');
 
   const items = d.items.map(it=>`
-    <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:13px">
-      <div style="width:30px;height:30px;background:var(--${it.color}-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${it.svg}</div>
-      <span style="font-size:13px;color:var(--text2);font-weight:500;line-height:1.45;align-self:center">${it.text}</span>
+    <div class="tonb-item">
+      <div class="tonb-item-icon" style="background:var(--${it.color}-bg,var(--primary-bg))">${it.svg}</div>
+      <span class="tonb-item-text">${it.text}</span>
     </div>`).join('');
 
-  document.getElementById('tab-onb-title').innerHTML = `${d.icon} <span>${d.title}</span>`;
+  document.getElementById('tab-onb-icon').innerHTML = d.icon;
+  document.getElementById('tab-onb-title').textContent = d.title;
   document.getElementById('tab-onb-sub').textContent = d.desc;
   document.getElementById('tab-onb-items').innerHTML = items;
+
+  const cta = document.getElementById('tab-onb-cta');
+  const hint = document.getElementById('tab-onb-hint');
+  if(hasCTA){
+    cta.style.display = 'flex';
+    hint.style.display = 'none';
+    const startBtn = document.getElementById('tab-onb-start-btn');
+    if(startBtn) startBtn.onclick = ()=>{ closeTabOnboarding(tab); setTimeout(()=>openProfileOnboarding && openProfileOnboarding(), 100); };
+  } else {
+    cta.style.display = 'none';
+    hint.style.display = 'block';
+  }
+
   document.getElementById('tab-onboarding-modal').style.display = 'block';
+}
+
+function openTabOnboarding(tab){
+  if(S[TAB_ONBOARDING_DATA[tab].doneKey]) return;
+  window._tabOnbCurrent = tab;
+  buildTabModal(tab);
 }
 
 // Abre el banner de ayuda de la pestaña activa (siempre, sin comprobar si ya fue visto)
@@ -5403,20 +5450,9 @@ window.openTabHelp = () => {
     return;
   }
 
-  // Construir el modal igual que openTabOnboarding pero sin marcar como visto
-  const d = TAB_ONBOARDING_DATA[tabKey];
+  // Construir el modal usando buildTabModal
   window._tabOnbCurrent = tabKey;
-
-  const items = d.items.map(it=>`
-    <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:13px">
-      <div style="width:30px;height:30px;background:var(--${it.color}-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${it.svg}</div>
-      <span style="font-size:13px;color:var(--text2);font-weight:500;line-height:1.45;align-self:center">${it.text}</span>
-    </div>`).join('');
-
-  document.getElementById('tab-onb-title').innerHTML = `${d.icon} <span>${d.title}</span>`;
-  document.getElementById('tab-onb-sub').textContent = d.desc;
-  document.getElementById('tab-onb-items').innerHTML = items;
-  document.getElementById('tab-onboarding-modal').style.display = 'block';
+  buildTabModal(tabKey);
   haptic('light');
 };
 
@@ -5745,62 +5781,54 @@ if(!S.onboardingResumenDone && S.onboardingDone){
 <!-- ═══════════════════════════════════════════════════
      ONBOARDING MODAL (shown on first launch)
 ════════════════════════════════════════════════════ -->
-<div id="onboarding-modal" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg)">
-  <div style="max-width:420px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;padding:max(28px,env(safe-area-inset-top,28px)) 20px calc(var(--safe-bottom)+18px)">
+<div id="onboarding-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:24px;animation:fadeIn .2s ease">
+  <div style="background:var(--surface);border-radius:24px;width:100%;max-width:360px;padding:28px 24px 26px;display:flex;flex-direction:column;align-items:center;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:cardIn .28s cubic-bezier(.2,.8,.2,1)">
 
     <!-- Logo -->
-    <div style="text-align:center;margin-bottom:18px;flex-shrink:0">
-      <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--primary-dark),var(--primary));border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(31,92,58,.32);margin:0 auto 12px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-      <div style="font-weight:800;font-size:20px;color:var(--text);letter-spacing:-.4px;line-height:1.15">Bienvenido a FinancialAPP</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45">Tu coach financiero personal con IA · Privado y local</div>
+    <div style="width:62px;height:62px;background:linear-gradient(145deg,var(--green-700,#2C6E49),var(--green-900,#1B4F35));border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(27,79,53,.3);margin-bottom:14px;flex-shrink:0">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.95)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     </div>
 
-    <!-- Steps (compactos) -->
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;flex-shrink:0">
+    <div style="font-weight:800;font-size:20px;color:var(--text);letter-spacing:-.4px;line-height:1.2;margin-bottom:6px">Bienvenido a FinancialAPP</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:16px;max-width:270px">Tu coach financiero personal con IA. Controla tus finanzas en segundos.</div>
 
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:center">
-        <div style="width:32px;height:32px;background:var(--primary-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.25">1 · Importa tu banco</div>
-          <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:1px">Sube un CSV y la IA lo clasifica solo</div>
+    <!-- Steps -->
+    <div style="width:100%;display:flex;flex-direction:column;gap:7px;margin-bottom:16px;text-align:left">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px">
+        <div style="width:32px;height:32px;background:var(--primary-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.2">Importa tu banco</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Sube un CSV y la IA lo clasifica solo</div>
         </div>
       </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:center">
-        <div style="width:32px;height:32px;background:var(--green-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--green)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.25">2 · Define presupuestos</div>
-          <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:1px">Límites por categoría para no descontrolarte</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px">
+        <div style="width:32px;height:32px;background:var(--green-bg,var(--green-50));border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.2">Define presupuestos</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Límites por categoría para no descontrolarte</div>
         </div>
       </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:center">
-        <div style="width:32px;height:32px;background:var(--blue-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--blue)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.25">3 · Análisis con IA</div>
-          <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:1px">Salud financiera, consejos y plan de deudas</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px">
+        <div style="width:32px;height:32px;background:var(--blue-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
         </div>
-      </div>
-
-    </div>
-
-    <!-- Privacy pill (compacta) -->
-    <div style="background:var(--green-bg);border:1px solid rgba(46,125,82,.22);border-radius:11px;padding:9px 12px;display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-shrink:0">
-      <span style="flex-shrink:0;color:var(--green);display:flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-      <div style="font-size:11.5px;color:var(--green);line-height:1.4;font-weight:600">
-        <strong>100% local</strong> · Tus datos no salen del dispositivo
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.2">Análisis con IA</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Salud financiera, consejos y plan de deudas</div>
+        </div>
       </div>
     </div>
-
-    <!-- Flex spacer empuja el CTA al final -->
-    <div style="flex:1"></div>
 
     <!-- CTA -->
-    <button onclick="closeOnboarding()" class="btn btn-full" style="font-size:14.5px;padding:14px;border-radius:13px;margin-bottom:8px;flex-shrink:0">
-      Empezar →
+    <button onclick="closeOnboarding()" style="width:100%;padding:15px;background:var(--green-700,#2C6E49);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 3px 12px rgba(44,110,74,.28);transition:opacity .15s;margin-bottom:10px">
+      Empezar
     </button>
-    <div onclick="openPrivacyPolicy()" style="text-align:center;font-size:10.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;flex-shrink:0">
-      Ver política de privacidad completa
+    <div onclick="openPrivacyPolicy()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px">
+      Ver política de privacidad
     </div>
 
   </div>
@@ -5885,22 +5913,20 @@ if(!S.onboardingResumenDone && S.onboardingDone){
 <div id="tab-onboarding-modal" style="display:none">
   <div class="modal-overlay modal-overlay-center" onclick="closeTabOnboarding(window._tabOnbCurrent)">
     <div class="modal modal-center" onclick="event.stopPropagation()">
-      <div class="modal-head">
-        <div class="modal-head-text">
-          <div class="modal-head-title" id="tab-onb-title" style="display:flex;align-items:center;gap:10px"></div>
-          <div class="modal-head-sub" id="tab-onb-sub"></div>
+      <div class="tonb-wrap">
+        <div class="tonb-icon-wrap" id="tab-onb-icon"></div>
+        <div class="tonb-title" id="tab-onb-title"></div>
+        <div class="tonb-desc" id="tab-onb-sub"></div>
+        <div class="tonb-items" id="tab-onb-items"></div>
+        <!-- CTA: solo visible en analisis -->
+        <div id="tab-onb-cta" style="width:100%;display:none;flex-direction:column;align-items:center;gap:0">
+          <button class="tonb-btn" id="tab-onb-start-btn">Empezar el test</button>
+          <div class="tonb-skip" onclick="closeTabOnboarding(window._tabOnbCurrent)">Omitir por ahora</div>
         </div>
-        <button onclick="closeTabOnboarding(window._tabOnbCurrent)" class="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="tab-onb-items" style="display:flex;flex-direction:column;gap:10px;margin-top:4px"></div>
-        <div class="modal-info">
-          <span class="modal-info-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
-          <span class="modal-info-text" id="tab-onb-info">Puedes volver a consultar esta sección siempre que quieras.</span>
+        <!-- Hint: solo en resumen/estadisticas -->
+        <div id="tab-onb-hint" style="display:none;font-size:11px;color:var(--muted2);margin-top:4px;text-align:center">
+          Toca en cualquier lugar para cerrar
         </div>
-        <button class="btn-modal-action" onclick="closeTabOnboarding(window._tabOnbCurrent)">
-          Entendido
-        </button>
       </div>
     </div>
   </div>
