@@ -3,7 +3,7 @@
 //  ⚠️  Cambia CACHE_VERSION en cada deploy para
 //      que la app instalada detecte la actualización.
 // ─────────────────────────────────────────────
-const CACHE_VERSION = 'finanzas-v11'; // ← bump al desplegar
+const CACHE_VERSION = 'finanzas-v12'; // ← bump al desplegar
 
 // Archivos que se precachean al instalar.
 const ASSETS = [
