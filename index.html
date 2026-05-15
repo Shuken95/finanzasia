@@ -1112,10 +1112,14 @@ async function handleAuthChange(event, session){
   if(session?.user){
     currentUser = session.user;
     updateAvatarUI(session.user);
-    // Load data from cloud on login
-    await loadFromCloud();
     document.getElementById('login-screen').classList.add('hide');
+    // Arranca la app inmediatamente. La carga desde la nube se hace en
+    // segundo plano para no bloquear el splash si la red va lenta o la
+    // tabla no existe.
     bootApp();
+    loadFromCloud()
+      .then(() => { if(typeof render === 'function') render(); })
+      .catch(e => console.warn('Cloud load (background) error:', e));
   } else {
     currentUser = null;
     updateAvatarUI(null);
@@ -1153,19 +1157,21 @@ async function saveToCloud(){
 async function loadFromCloud(){
   if(!currentUser) return;
   try {
-    const { data, error } = await supa
-      .from('user_data')
-      .select('data')
-      .eq('user_id', currentUser.id)
-      .single();
+    // Race contra timeout de 3s para no quedarnos colgados si la tabla
+    // no existe o la red va mal.
+    const result = await Promise.race([
+      supa.from('user_data').select('data').eq('user_id', currentUser.id).single(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('cloud-timeout')), 3000))
+    ]);
+    const { data, error } = result || {};
+    if(error && error.code !== 'PGRST116') throw error; // PGRST116 = row no encontrada (OK)
     if(data?.data){
       const cloud = JSON.parse(data.data);
-      // Merge: cloud wins for most things, keep local tab preference
       const localTab = S.tab;
       S = { ...S, ...cloud, tab: localTab };
       saveState();
     }
-  } catch(e){ console.warn('Cloud load error:', e); }
+  } catch(e){ console.warn('Cloud load error:', e?.message || e); }
 }
 
 // Override saveState to also sync to cloud (debounced 2s)
@@ -1227,18 +1233,35 @@ async function ensureTable(){
 }
 
 // ── Boot sequence ──
+let _splashHidden = false;
+function _forceHideSplash(){
+  if(_splashHidden) return;
+  _splashHidden = true;
+  const splash = document.getElementById('splash');
+  if(splash){
+    splash.classList.add('hide');
+    setTimeout(()=>{ splash.style.display='none'; }, 520);
+  }
+  try { render(); } catch(e){ console.warn('render() error:', e); }
+  try { maybeShowOnboarding && maybeShowOnboarding(); } catch(e){}
+}
+
+// Safety net: pase lo que pase, la splash se quita a los 4 s desde el primer
+// frame. Evita quedarse "pensando" si la sesión cuelga o la red va lenta.
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(_forceHideSplash, 4000);
+});
+
 function bootApp(){
   applyDark();
   applyHideAmounts();
+  if(_splashHidden) return; // ya estamos dentro de la app
   const splash = document.getElementById('splash');
   if(splash){
     if(S.dark) splash.style.background='linear-gradient(160deg,#0E1810,#162218)';
-    setTimeout(()=>{
-      splash.classList.add('hide');
-      setTimeout(()=>{ splash.style.display='none'; render(); maybeShowOnboarding(); }, 520);
-    }, currentUser ? 600 : 1800); // shorter splash if already logged in
+    setTimeout(_forceHideSplash, currentUser ? 600 : 1800);
   } else {
-    render(); maybeShowOnboarding();
+    _forceHideSplash();
   }
 }
 
@@ -5477,25 +5500,32 @@ if(!S.aiProvider){
   // Listen for auth state changes (handles redirect back from Google)
   supa.auth.onAuthStateChange(handleAuthChange);
 
-  // Check if there's an existing session
-  const { data: { session } } = await supa.auth.getSession();
-
-  if(session?.user){
-    // Already logged in — boot with cloud sync
-    await handleAuthChange('SIGNED_IN', session);
-    bootApp();
-  } else {
-    // Check URL for OAuth callback hash
-    const hash = window.location.hash;
-    if(hash && hash.includes('access_token')){
-      // Supabase will fire onAuthStateChange — just wait
-      bootApp();
+  // Check if there's an existing session — pero NO bloqueamos el splash
+  // si la llamada tarda. Lanzamos la app igualmente con bootApp().
+  let sessionPromise = supa.auth.getSession();
+  // Timeout de 2s: si Supabase no responde, seguimos con la app sin sesión.
+  Promise.race([
+    sessionPromise,
+    new Promise(r => setTimeout(() => r({ data: { session: null }, timeout: true }), 2000))
+  ]).then(({ data, timeout }) => {
+    if(timeout) console.warn('Supabase getSession() tardó >2s — arrancando sin esperar');
+    const session = data?.session;
+    if(session?.user){
+      // handleAuthChange ya se encarga de bootApp + cargar nube en background
+      handleAuthChange('SIGNED_IN', session);
     } else {
-      // Show login screen (user can skip with "Usar sin cuenta")
-      document.getElementById('login-screen').classList.remove('hide');
-      bootApp(); // splash still runs behind login screen
+      // Check URL for OAuth callback hash
+      const hash = window.location.hash;
+      if(hash && hash.includes('access_token')){
+        // Supabase procesará el hash y disparará onAuthStateChange con SIGNED_IN.
+        // Mientras tanto arrancamos la app por si tarda.
+        bootApp();
+      } else {
+        document.getElementById('login-screen').classList.remove('hide');
+        bootApp();
+      }
     }
-  }
+  });
 })();
 // Show Resumen onboarding only when the welcome modal is NOT currently shown.
 // When the welcome modal IS shown, closeOnboarding() will trigger it after the user closes it.
