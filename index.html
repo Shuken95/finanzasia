@@ -217,6 +217,15 @@
     .modal-info-text{font-size:12px;color:var(--primary);line-height:1.5;font-weight:500}
     .btn-modal-action{width:100%;padding:16px;border-radius:14px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;cursor:pointer;border:none;background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(61,153,112,.28);transition:opacity .15s}
     .btn-modal-action:active{opacity:.85}
+
+    /* ── Centered card modal (tarjeta centrada, no bottom-sheet) ── */
+    .modal-overlay-center{align-items:center !important;padding:20px;animation:fadeIn .2s ease}
+    .modal-center{border-radius:22px !important;max-width:360px !important;width:100%;max-height:calc(100dvh - 40px);animation:cardIn .24s cubic-bezier(.2,.8,.2,1) !important;box-shadow:0 24px 60px rgba(0,0,0,.25),0 4px 14px rgba(0,0,0,.08)}
+    .modal-center .modal-handle{display:none}
+    @keyframes cardIn{
+      from{opacity:0;transform:scale(.94) translateY(8px)}
+      to  {opacity:1;transform:scale(1) translateY(0)}
+    }
     @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
     @keyframes slideDown{from{transform:translateY(0)}to{transform:translateY(105%)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -5736,58 +5745,61 @@ if(!S.onboardingResumenDone && S.onboardingDone){
 <!-- ═══════════════════════════════════════════════════
      ONBOARDING MODAL (shown on first launch)
 ════════════════════════════════════════════════════ -->
-<div id="onboarding-modal" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg);overflow-y:auto">
-  <div style="max-width:480px;margin:0 auto;padding:40px 24px calc(var(--safe-bottom)+40px)">
+<div id="onboarding-modal" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg)">
+  <div style="max-width:420px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;padding:max(28px,env(safe-area-inset-top,28px)) 20px calc(var(--safe-bottom)+18px)">
 
     <!-- Logo -->
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="width:72px;height:72px;background:linear-gradient(135deg,var(--primary),#D4895A);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 8px 28px rgba(61,153,112,.35);margin:0 auto 16px"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-      <div style="font-weight:800;font-size:24px;color:var(--text);letter-spacing:-.5px">Bienvenido a FinancialAPP</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6">Tu coach financiero personal con IA.<br/>Privado, local, sin cuentas bancarias.</div>
+    <div style="text-align:center;margin-bottom:18px;flex-shrink:0">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--primary-dark),var(--primary));border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(31,92,58,.32);margin:0 auto 12px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div style="font-weight:800;font-size:20px;color:var(--text);letter-spacing:-.4px;line-height:1.15">Bienvenido a FinancialAPP</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45">Tu coach financiero personal con IA · Privado y local</div>
     </div>
 
-    <!-- Steps -->
-    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px">
+    <!-- Steps (compactos) -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;flex-shrink:0">
 
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start">
-        <div style="width:36px;height:36px;background:var(--primary-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg></div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:3px">1 · Importa tu banco</div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.6">Exporta un CSV desde tu banco (BBVA, Revolut u otro) y súbelo. La IA clasificará los movimientos automáticamente.</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:center">
+        <div style="width:32px;height:32px;background:var(--primary-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.25">1 · Importa tu banco</div>
+          <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:1px">Sube un CSV y la IA lo clasifica solo</div>
         </div>
       </div>
 
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start">
-        <div style="width:36px;height:36px;background:var(--green-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:3px">2 · Define tus presupuestos</div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.6">Pon límites mensuales por categoría (alimentación, ocio…) para controlar dónde va tu dinero.</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:center">
+        <div style="width:32px;height:32px;background:var(--green-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--green)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.25">2 · Define presupuestos</div>
+          <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:1px">Límites por categoría para no descontrolarte</div>
         </div>
       </div>
 
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start">
-        <div style="width:36px;height:36px;background:var(--blue-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></svg></div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:3px">3 · Recibe análisis con IA</div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.6">Obtén tu puntuación de salud financiera, consejos personalizados y estrategia de deudas adaptada a tu situación real.</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:center">
+        <div style="width:32px;height:32px;background:var(--blue-bg);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--blue)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.25">3 · Análisis con IA</div>
+          <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:1px">Salud financiera, consejos y plan de deudas</div>
         </div>
       </div>
 
     </div>
 
-    <!-- Privacy pill -->
-    <div style="background:var(--green-bg);border:1px solid rgba(46,125,82,.2);border-radius:12px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start;margin-bottom:28px">
-      <span style="font-size:18px;flex-shrink:0"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-      <div style="font-size:12px;color:var(--green);line-height:1.65;font-weight:600">
-        <strong>100% local.</strong> Todos tus datos se guardan únicamente en este dispositivo. Nunca se envían a servidores externos, salvo los textos que le preguntas a la IA (procesados por Anthropic con tu API key).
+    <!-- Privacy pill (compacta) -->
+    <div style="background:var(--green-bg);border:1px solid rgba(46,125,82,.22);border-radius:11px;padding:9px 12px;display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-shrink:0">
+      <span style="flex-shrink:0;color:var(--green);display:flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+      <div style="font-size:11.5px;color:var(--green);line-height:1.4;font-weight:600">
+        <strong>100% local</strong> · Tus datos no salen del dispositivo
       </div>
     </div>
+
+    <!-- Flex spacer empuja el CTA al final -->
+    <div style="flex:1"></div>
 
     <!-- CTA -->
-    <button onclick="closeOnboarding()" class="btn btn-full" style="font-size:15px;padding:16px;border-radius:14px;margin-bottom:12px">
+    <button onclick="closeOnboarding()" class="btn btn-full" style="font-size:14.5px;padding:14px;border-radius:13px;margin-bottom:8px;flex-shrink:0">
       Empezar →
     </button>
-    <div onclick="openPrivacyPolicy()" style="text-align:center;font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px">
+    <div onclick="openPrivacyPolicy()" style="text-align:center;font-size:10.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;flex-shrink:0">
       Ver política de privacidad completa
     </div>
 
@@ -5798,9 +5810,9 @@ if(!S.onboardingResumenDone && S.onboardingDone){
      PROFILE ONBOARDING MODAL — bottom-sheet style
 ════════════════════════════════════════════════════ -->
 <div id="profile-onboarding-overlay" style="display:none">
-  <div class="modal-overlay" onclick="skipProfileOnboarding()">
-    <div class="modal" id="profile-onboarding-sheet" onclick="event.stopPropagation()" style="max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
-      <div class="modal-handle"></div>
+  <div class="modal-overlay modal-overlay-center" onclick="skipProfileOnboarding()">
+    <div class="modal modal-center" id="profile-onboarding-sheet" onclick="event.stopPropagation()" style="max-height:calc(100dvh - 40px);display:flex;flex-direction:column;overflow:hidden">
+      <div class="modal-handle" style="display:none"></div>
 
       <!-- Welcome screen -->
       <div id="po-welcome" style="display:flex;flex-direction:column;overflow:hidden">
@@ -5871,9 +5883,8 @@ if(!S.onboardingResumenDone && S.onboardingDone){
      — Same bottom-sheet design as add-debt / add-saving
 ════════════════════════════════════════════════════ -->
 <div id="tab-onboarding-modal" style="display:none">
-  <div class="modal-overlay" onclick="closeTabOnboarding(window._tabOnbCurrent)">
-    <div class="modal" onclick="event.stopPropagation()">
-      <div class="modal-handle"></div>
+  <div class="modal-overlay modal-overlay-center" onclick="closeTabOnboarding(window._tabOnbCurrent)">
+    <div class="modal modal-center" onclick="event.stopPropagation()">
       <div class="modal-head">
         <div class="modal-head-text">
           <div class="modal-head-title" id="tab-onb-title" style="display:flex;align-items:center;gap:10px"></div>
