@@ -3,7 +3,7 @@
 //  ⚠️  Cambia CACHE_VERSION en cada deploy para
 //      que la app instalada detecte la actualización.
 // ─────────────────────────────────────────────
-const CACHE_VERSION = 'finanzas-v17'; // ← bump al desplegar
+const CACHE_VERSION = 'finanzas-v18'; // ← bump al desplegar
 
 // Archivos que se precachean al instalar.
 const ASSETS = [
@@ -16,6 +16,9 @@ const ASSETS = [
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './icons/favicon-32.png',
+  './icons/icon.svg',
+  './icons/icon-maskable.svg',
+  './icons/favicon.svg',
 ];
 
 // ── INSTALL ──────────────────────────────────

@@ -191,6 +191,11 @@
       background:var(--bg);
     }
     .content::-webkit-scrollbar{display:none}
+    /* Extra breathing room between tab bar and the first card on key tabs */
+    body.tab-resumen .content,
+    body.tab-estadisticas .content{ padding-top:26px; }
+    body.tab-resumen .content > .balance-hero:first-child,
+    body.tab-estadisticas .content > .stats-row:first-child{ margin-top:4px; }
 
     /* ── CARDS — iOS grouped style ── */
     .card{
@@ -1230,7 +1235,7 @@
   // ── PWA icon y manifest estáticos (requisito para instalación fiable en Chrome) ──
   const iconUrl192 = './icons/icon-192.png';
   document.getElementById('pwa-icon').href = iconUrl192;
-  document.getElementById('pwa-apple-icon').href = iconUrl192;
+  document.getElementById('pwa-apple-icon').href = './icons/apple-touch-icon.png';
   document.getElementById('pwa-manifest').href = './manifest.json';
 
   // ── Service worker con detección de actualizaciones ──
@@ -2641,6 +2646,15 @@ function renderContent(opts={}){
   const map={
     'Resumen':rResumen,'Estadísticas':rEstadisticas,'Análisis IA':rAnalysis
   };
+  // Toggle a body class per tab so we can target tab-specific spacing in CSS
+  const tabClassMap={
+    'Resumen':'tab-resumen',
+    'Estadísticas':'tab-estadisticas',
+    'Análisis IA':'tab-analisis-ia'
+  };
+  const b=document.body;
+  Object.values(tabClassMap).forEach(cls=>b.classList.remove(cls));
+  if(tabClassMap[S.tab]) b.classList.add(tabClassMap[S.tab]);
   const el = document.getElementById('content');
   const prevScroll = el.scrollTop;
   el.innerHTML=(map[S.tab]||rResumen)();
