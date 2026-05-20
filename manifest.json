@@ -1,6 +1,6 @@
 {
-  "name": "FinancialAPP",
-  "short_name": "FinancialAPP",
+  "name": "Mintly",
+  "short_name": "Mintly",
   "description": "Gestión inteligente de finanzas personales",
   "start_url": "./",
   "scope": "./",
