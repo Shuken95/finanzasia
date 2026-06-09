@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
-  <meta name="theme-color" content="#1A8A4A"/>
+  <meta name="theme-color" content="#ECEEF3" media="(prefers-color-scheme: light)"/>
+  <meta name="theme-color" content="#0A0A0F" media="(prefers-color-scheme: dark)"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="Mintly"/>
@@ -207,7 +208,8 @@
 
     /* Typing indicator dots */
     @keyframes typingDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
-    .typing-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.7);display:inline-block;animation:typingDot 1.2s infinite ease-in-out}
+    .typing-dot{width:7px;height:7px;border-radius:50%;background:rgba(139,68,204,.40);display:inline-block;animation:typingDot 1.2s infinite ease-in-out}
+    .dark .typing-dot{background:rgba(255,255,255,.55)}
     .typing-dot:nth-child(2){animation-delay:.2s}
     .typing-dot:nth-child(3){animation-delay:.4s}
     .content{
@@ -257,41 +259,69 @@
     .stat-value{font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,'SF Mono',monospace;font-size:16px;font-weight:700;line-height:1;color:var(--text);letter-spacing:-0.8px}
     .stat-sub{color:var(--muted);font-size:9px;margin-top:4px}
 
-    /* ── BALANCE HERO ── */
+    /* ── BALANCE HERO — tinted glass, mismo idioma que .card-green ── */
     .balance-hero{
-      background:linear-gradient(145deg,#28C76F 0%,#1A8A4A 40%,#0F6035 75%,#0A4A28 100%);
+      background:linear-gradient(145deg,rgba(225,245,234,.97) 0%,rgba(208,238,222,.93) 100%);
+      -webkit-backdrop-filter:blur(28px) saturate(180%);
+      backdrop-filter:blur(28px) saturate(180%);
       border-radius:var(--radius-xl);
       padding:22px 18px 18px;
-      box-shadow:0 12px 48px rgba(26,138,74,.38),0 4px 14px rgba(26,138,74,.22),inset 0 1px 0 rgba(255,255,255,.20);
-      color:#fff;text-align:center;position:relative;
+      box-shadow:0 6px 28px rgba(26,138,74,.13),0 2px 8px rgba(26,138,74,.07),inset 0 1px 0 rgba(255,255,255,.85);
+      border:0.5px solid rgba(26,138,74,.18);
+      color:var(--primary-dark);text-align:center;position:relative;
       margin:0 14px;
     }
-    /* rich shimmer overlay */
+    /* shimmer sutil — misma esquina que .card-green */
     .balance-hero::before{
       content:'';position:absolute;inset:0;border-radius:var(--radius-xl);
-      background:
-        radial-gradient(ellipse at 78% 14%,rgba(255,255,255,.22) 0%,transparent 52%),
-        radial-gradient(ellipse at 20% 80%,rgba(0,0,0,.12) 0%,transparent 50%);
-      pointer-events:none;
+      background:radial-gradient(ellipse at 80% 10%,rgba(255,255,255,.60) 0%,transparent 55%);
+      pointer-events:none;z-index:0;
     }
+    .balance-hero > *{position:relative;z-index:1}
     .dark .balance-hero{
-      background:linear-gradient(145deg,#2ECC71 0%,#1A8A4A 42%,#0F5C32 78%,#083D22 100%);
-      box-shadow:0 12px 48px rgba(48,209,88,.26),0 4px 14px rgba(48,209,88,.18),inset 0 1px 0 rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(26,138,74,.20) 0%,rgba(15,96,53,.16) 100%);
+      border-color:rgba(48,209,88,.20);
+      box-shadow:0 6px 28px rgba(0,0,0,.32),0 2px 8px rgba(0,0,0,.22),inset 0 1px 0 rgba(48,209,88,.14);
+      color:#5DE899;
     }
-    .balance-hero-label{font-size:9px;text-transform:uppercase;letter-spacing:1.4px;opacity:.72;margin-bottom:8px;font-weight:700}
-    .balance-hero-amount{font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,'SF Mono',monospace;font-size:38px;font-weight:700;line-height:1.05;letter-spacing:-2.5px;word-break:break-all}
-    .balance-hero-sub{font-size:11px;opacity:.68;margin-top:6px}
+    .balance-hero-label{
+      font-size:9px;text-transform:uppercase;letter-spacing:1.4px;
+      color:var(--primary-dark);opacity:.65;
+      margin-bottom:8px;font-weight:700;
+    }
+    .dark .balance-hero-label{color:#5DE899;opacity:.70}
+    .balance-hero-amount{
+      font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,'SF Mono',monospace;
+      font-size:38px;font-weight:700;line-height:1.05;letter-spacing:-2.5px;word-break:break-all;
+      color:var(--primary-dark);
+    }
+    .dark .balance-hero-amount{color:#fff}
+    .balance-hero-sub{font-size:11px;color:var(--primary-dark);opacity:.60;margin-top:6px}
+    .dark .balance-hero-sub{color:#5DE899;opacity:.70}
+    /* hide/show btn — adaptar al fondo claro */
+    .balance-hero .icon-btn{
+      background:rgba(26,138,74,.12);
+      color:var(--primary-dark);
+    }
+    .dark .balance-hero .icon-btn{
+      background:rgba(48,209,88,.16);
+      color:#5DE899;
+    }
     .balance-accounts{display:flex;gap:7px;margin-top:16px;flex-wrap:wrap}
     .balance-account{
-      flex:1;background:rgba(0,0,0,.16);border-radius:14px;padding:10px 9px;
+      flex:1;background:rgba(26,138,74,.10);border-radius:14px;padding:10px 9px;
       text-align:center;
       -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
-      border:0.5px solid rgba(255,255,255,.16);
+      border:0.5px solid rgba(26,138,74,.16);
       transition:background .15s;
     }
-    .balance-account:active{background:rgba(0,0,0,.24)}
-    .balance-account-name{font-size:8px;font-weight:700;letter-spacing:.5px;opacity:.70;margin-bottom:4px;text-transform:uppercase}
-    .balance-account-amt{font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,'SF Mono',monospace;font-size:13px;font-weight:700;letter-spacing:-0.5px}
+    .balance-account:active{background:rgba(26,138,74,.18)}
+    .dark .balance-account{background:rgba(0,0,0,.20);border-color:rgba(48,209,88,.14)}
+    .dark .balance-account:active{background:rgba(0,0,0,.30)}
+    .balance-account-name{font-size:8px;font-weight:700;letter-spacing:.5px;color:var(--primary-dark);opacity:.60;margin-bottom:4px;text-transform:uppercase}
+    .dark .balance-account-name{color:#5DE899;opacity:.65}
+    .balance-account-amt{font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,'SF Mono',monospace;font-size:13px;font-weight:700;letter-spacing:-0.5px;color:var(--primary-dark)}
+    .dark .balance-account-amt{color:#fff}
 
     /* ── WEEK SUMMARY ── */
     .week-bar{
@@ -594,119 +624,186 @@
 
     /* ── SECTION CARD GRADIENTS — espejo exacto del hero ── */
     .card-green,.card-amber,.card-blue{
-      -webkit-backdrop-filter:none;
-      backdrop-filter:none;
+      -webkit-backdrop-filter:blur(28px) saturate(180%);
+      backdrop-filter:blur(28px) saturate(180%);
       padding:14px 16px;
     }
     .card-green .empty,.card-amber .empty,.card-blue .empty{
       padding:8px 16px 12px;
     }
+
+    /* ── Tinted glass — light mode ── */
     .card-green{
-      background:linear-gradient(145deg,#28C76F 0%,#1A8A4A 42%,#0F6035 75%,#0A4A28 100%);
-      border-color:rgba(26,138,74,.30);
-      box-shadow:0 12px 48px rgba(26,138,74,.38),0 4px 14px rgba(26,138,74,.22),inset 0 1px 0 rgba(255,255,255,.20);
-      color:#fff;
+      background:linear-gradient(145deg,rgba(232,245,238,.95) 0%,rgba(220,240,230,.90) 100%);
+      border-color:rgba(26,138,74,.18);
+      box-shadow:0 4px 20px rgba(26,138,74,.10),0 1px 4px rgba(26,138,74,.06),inset 0 1px 0 rgba(255,255,255,.80);
     }
     .card-amber{
-      background:linear-gradient(145deg,#FFD060 0%,#E07800 42%,#A85200 75%,#7A3A00 100%);
-      border-color:rgba(224,120,0,.30);
-      box-shadow:0 12px 48px rgba(224,120,0,.36),0 4px 14px rgba(224,120,0,.20),inset 0 1px 0 rgba(255,255,255,.22);
-      color:#fff;
+      background:linear-gradient(145deg,rgba(255,245,225,.95) 0%,rgba(255,236,200,.90) 100%);
+      border-color:rgba(224,120,0,.18);
+      box-shadow:0 4px 20px rgba(224,120,0,.09),0 1px 4px rgba(224,120,0,.05),inset 0 1px 0 rgba(255,255,255,.80);
     }
     .card-blue{
-      background:linear-gradient(145deg,#64D2FF 0%,#007AFF 42%,#0051CC 75%,#003399 100%);
-      border-color:rgba(0,122,255,.30);
-      box-shadow:0 12px 48px rgba(0,122,255,.36),0 4px 14px rgba(0,122,255,.20),inset 0 1px 0 rgba(255,255,255,.20);
-      color:#fff;
+      background:linear-gradient(145deg,rgba(225,240,255,.95) 0%,rgba(210,232,255,.90) 100%);
+      border-color:rgba(0,122,255,.18);
+      box-shadow:0 4px 20px rgba(0,122,255,.09),0 1px 4px rgba(0,122,255,.05),inset 0 1px 0 rgba(255,255,255,.80);
     }
-    /* shimmer — solo aplica sobre el fondo, no recorta el contenido */
+
+    /* shimmer — sutil, solo en esquina superior */
     .card-green::before,.card-amber::before,.card-blue::before{
       content:'';position:absolute;inset:0;border-radius:inherit;
-      background:
-        radial-gradient(ellipse at 78% 14%,rgba(255,255,255,.22) 0%,transparent 52%),
-        radial-gradient(ellipse at 20% 80%,rgba(0,0,0,.10) 0%,transparent 50%);
+      background:radial-gradient(ellipse at 80% 10%,rgba(255,255,255,.55) 0%,transparent 55%);
       pointer-events:none;z-index:0;
     }
-    /* todo el contenido por encima del shimmer */
+    /* contenido encima del shimmer */
     .card-green > *,.card-amber > *,.card-blue > *{position:relative;z-index:1}
-    /* dark variants */
+
+    /* ── Tinted glass — dark mode ── */
     .dark .card-green{
-      background:linear-gradient(145deg,#2ECC71 0%,#1A8A4A 42%,#0F5C32 75%,#083D22 100%);
-      box-shadow:0 12px 48px rgba(48,209,88,.26),0 4px 14px rgba(48,209,88,.16),inset 0 1px 0 rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(26,138,74,.18) 0%,rgba(15,96,53,.14) 100%);
+      border-color:rgba(48,209,88,.18);
+      box-shadow:0 4px 20px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20),inset 0 1px 0 rgba(48,209,88,.12);
     }
     .dark .card-amber{
-      background:linear-gradient(145deg,#FFD60A 0%,#FF9500 42%,#C06000 75%,#7A3A00 100%);
-      box-shadow:0 12px 48px rgba(255,149,0,.26),0 4px 14px rgba(255,149,0,.16),inset 0 1px 0 rgba(255,255,255,.16);
+      background:linear-gradient(145deg,rgba(224,120,0,.18) 0%,rgba(160,80,0,.14) 100%);
+      border-color:rgba(255,149,0,.18);
+      box-shadow:0 4px 20px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,149,0,.12);
     }
     .dark .card-blue{
-      background:linear-gradient(145deg,#70D7FF 0%,#0A84FF 42%,#0051CC 75%,#003399 100%);
-      box-shadow:0 12px 48px rgba(10,132,255,.26),0 4px 14px rgba(10,132,255,.16),inset 0 1px 0 rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(0,122,255,.18) 0%,rgba(0,64,180,.14) 100%);
+      border-color:rgba(10,132,255,.18);
+      box-shadow:0 4px 20px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20),inset 0 1px 0 rgba(10,132,255,.12);
     }
-    /* tipografía interna — igual que el hero */
-    .card-green,.card-amber,.card-blue{color:#fff}
-    .card-green .card-title,.card-amber .card-title,.card-blue .card-title{
-      color:#fff;font-family:'Sora',sans-serif;letter-spacing:-.3px;
-    }
+
+    /* ── Tipografía adaptada al fondo claro/oscuro ── */
+    /* light: texto normal sobre fondo casi blanco */
+    .card-green .card-title{color:var(--primary-dark,#14683A);font-family:'Sora',sans-serif;letter-spacing:-.3px}
+    .card-amber .card-title{color:var(--orange2,#E07800);font-family:'Sora',sans-serif;letter-spacing:-.3px}
+    .card-blue  .card-title{color:var(--blue,#007AFF);font-family:'Sora',sans-serif;letter-spacing:-.3px}
+
+    /* el btn-add-circle hereda color de la tarjeta — sobreescribir a acento */
+    .card-green .btn-add-circle{background:rgba(26,138,74,.14);color:var(--primary)}
+    .card-amber .btn-add-circle{background:rgba(224,120,0,.12);color:var(--orange2)}
+    .card-blue  .btn-add-circle{background:rgba(0,122,255,.11);color:var(--blue)}
+
+    /* dark: texto claro sobre fondo tintado oscuro */
+    .dark .card-green .card-title{color:#5DE899}
+    .dark .card-amber .card-title{color:#FFB340}
+    .dark .card-blue  .card-title{color:#5AC8FA}
+    .dark .card-green .btn-add-circle{background:rgba(48,209,88,.18);color:#30D158}
+    .dark .card-amber .btn-add-circle{background:rgba(255,149,0,.18);color:#FF9F0A}
+    .dark .card-blue  .btn-add-circle{background:rgba(10,132,255,.18);color:#0A84FF}
+
+    /* muted dentro de tinted glass */
     .card-green [style*="color:var(--muted)"],
     .card-amber [style*="color:var(--muted)"],
-    .card-blue  [style*="color:var(--muted)"]{color:rgba(255,255,255,.68)!important}
-    /* solo el primer nivel de hijos directos hereda blanco — NO las sub-cards internas */
-    .card-green > *:not(input):not(button),
-    .card-amber > *:not(input):not(button),
-    .card-blue  > *:not(input):not(button){color:inherit}
-    /* las sub-cards internas resetean todos los colores a los valores normales */
+    .card-blue  [style*="color:var(--muted)"]{color:var(--muted)!important}
+
+    /* sub-cards internas */
     .inner-card{color:var(--text)!important}
     .inner-card *{color:unset}
-    /* empty states sobre fondo de color */
-    .card-green .empty,.card-amber .empty,.card-blue .empty{color:rgba(255,255,255,.75)}
-    .card-green .empty-title,.card-amber .empty-title,.card-blue .empty-title{color:#fff}
-    .card-green .empty-svg,.card-amber .empty-svg,.card-blue .empty-svg{filter:brightness(0) invert(1);opacity:.55}
-    /* AI Advisor cards — colores propios distintos al Resumen */
+    /* dark: inner-cards dentro de tarjetas tintadas oscuras — restaurar text claro */
+    .dark .card-amber .inner-card,
+    .dark .card-green .inner-card,
+    .dark .card-blue  .inner-card{
+      background:rgba(255,255,255,.06)!important;
+      border-color:rgba(255,255,255,.10)!important;
+    }
+
+    /* empty states */
+    .card-green .empty,.card-amber .empty,.card-blue .empty{color:var(--muted)}
+    .card-green .empty-title,.card-amber .empty-title,.card-blue .empty-title{color:var(--text)}
+    .card-green .empty-svg,.card-amber .empty-svg,.card-blue .empty-svg{filter:none;opacity:.55}
+
+    /* ── .btn dentro de tarjetas tintadas — hereda el color de la tarjeta ── */
+    .card-purple .btn:not(.btn-ghost):not(.btn-outline):not(.btn-danger){background:#6B21A8;box-shadow:0 4px 14px rgba(107,33,168,.28)}
+    .card-indigo .btn:not(.btn-ghost):not(.btn-outline):not(.btn-danger){background:#1E3A9C;box-shadow:0 4px 14px rgba(30,58,156,.28)}
+    .card-teal   .btn:not(.btn-ghost):not(.btn-outline):not(.btn-danger){background:#065F52;box-shadow:0 4px 14px rgba(6,95,82,.28)}
+    .dark .card-purple .btn:not(.btn-ghost):not(.btn-outline):not(.btn-danger){background:#9B59D4}
+    .dark .card-indigo .btn:not(.btn-ghost):not(.btn-outline):not(.btn-danger){background:#4F6AFF}
+    .dark .card-teal   .btn:not(.btn-ghost):not(.btn-outline):not(.btn-danger){background:#12B5A0}
+    .card-purple .btn-outline{color:#6B21A8;border-color:rgba(107,33,168,.40)}
+    .card-indigo .btn-outline{color:#1E3A9C;border-color:rgba(30,58,156,.40)}
+    .card-teal   .btn-outline{color:#065F52;border-color:rgba(6,95,82,.40)}
+    .dark .card-purple .btn-outline{color:#D09BFF;border-color:rgba(208,155,255,.35)}
+    .dark .card-indigo .btn-outline{color:#9DAAFF;border-color:rgba(157,170,255,.35)}
+    .dark .card-teal   .btn-outline{color:#5DEBD6;border-color:rgba(93,235,214,.35)}
+    /* ── AI Advisor cards — tinted glass, mismo idioma que card-green/amber/blue ── */
+
+    /* Purple — violeta suave */
     .card-purple{
-      background:linear-gradient(145deg,#BF7FFF 0%,#8B44CC 42%,#5E1F99 75%,#3D1166 100%);
-      border-color:rgba(139,68,204,.30);
-      box-shadow:0 12px 48px rgba(139,68,204,.36),0 4px 14px rgba(139,68,204,.20),inset 0 1px 0 rgba(255,255,255,.20);
-      color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;padding:16px 18px;
+      background:linear-gradient(145deg,rgba(245,235,255,.97) 0%,rgba(235,218,255,.93) 100%);
+      -webkit-backdrop-filter:blur(28px) saturate(180%);
+      backdrop-filter:blur(28px) saturate(180%);
+      border-color:rgba(139,68,204,.18);
+      box-shadow:0 4px 20px rgba(139,68,204,.10),0 1px 4px rgba(139,68,204,.06),inset 0 1px 0 rgba(255,255,255,.80);
+      color:var(--text);padding:16px 18px;
     }
     .dark .card-purple{
-      background:linear-gradient(145deg,#D09BFF 0%,#9B59D4 42%,#6B28A8 75%,#430F75 100%);
-      box-shadow:0 12px 48px rgba(175,82,222,.28),0 4px 14px rgba(175,82,222,.16),inset 0 1px 0 rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(139,68,204,.20) 0%,rgba(94,31,153,.16) 100%);
+      border-color:rgba(191,90,242,.20);
+      box-shadow:0 4px 20px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20),inset 0 1px 0 rgba(191,90,242,.14);
+      color:var(--text);
     }
+    .card-purple .card-title,.card-purple [style*="font-weight:700"]{color:#6B21A8}
+    .dark .card-purple .card-title,.dark .card-purple [style*="font-weight:700"]{color:#D09BFF}
+
+    /* Indigo — azul índigo suave */
     .card-indigo{
-      background:linear-gradient(145deg,#7B8FFF 0%,#3A52E8 42%,#1A2FCC 75%,#0D1A99 100%);
-      border-color:rgba(58,82,232,.30);
-      box-shadow:0 12px 48px rgba(58,82,232,.36),0 4px 14px rgba(58,82,232,.20),inset 0 1px 0 rgba(255,255,255,.20);
-      color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;padding:16px 18px;
+      background:linear-gradient(145deg,rgba(232,236,255,.97) 0%,rgba(218,224,255,.93) 100%);
+      -webkit-backdrop-filter:blur(28px) saturate(180%);
+      backdrop-filter:blur(28px) saturate(180%);
+      border-color:rgba(58,82,232,.18);
+      box-shadow:0 4px 20px rgba(58,82,232,.10),0 1px 4px rgba(58,82,232,.06),inset 0 1px 0 rgba(255,255,255,.80);
+      color:var(--text);padding:16px 18px;
     }
     .dark .card-indigo{
-      background:linear-gradient(145deg,#9DAAFF 0%,#4F6AFF 42%,#2840DD 75%,#1525AA 100%);
-      box-shadow:0 12px 48px rgba(79,106,255,.26),0 4px 14px rgba(79,106,255,.16),inset 0 1px 0 rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(58,82,232,.20) 0%,rgba(26,47,204,.16) 100%);
+      border-color:rgba(79,106,255,.20);
+      box-shadow:0 4px 20px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20),inset 0 1px 0 rgba(79,106,255,.14);
+      color:var(--text);
     }
+    .card-indigo .card-title,.card-indigo [style*="font-weight:700"]{color:#1E3A9C}
+    .dark .card-indigo .card-title,.dark .card-indigo [style*="font-weight:700"]{color:#9DAAFF}
+
+    /* Teal — verde azulado suave */
     .card-teal{
-      background:linear-gradient(145deg,#4DDBC8 0%,#0D9E8B 42%,#056B5E 75%,#023F37 100%);
-      border-color:rgba(13,158,139,.30);
-      box-shadow:0 12px 48px rgba(13,158,139,.36),0 4px 14px rgba(13,158,139,.20),inset 0 1px 0 rgba(255,255,255,.20);
-      color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;padding:16px 18px;
+      background:linear-gradient(145deg,rgba(225,248,245,.97) 0%,rgba(205,242,238,.93) 100%);
+      -webkit-backdrop-filter:blur(28px) saturate(180%);
+      backdrop-filter:blur(28px) saturate(180%);
+      border-color:rgba(13,158,139,.18);
+      box-shadow:0 4px 20px rgba(13,158,139,.10),0 1px 4px rgba(13,158,139,.06),inset 0 1px 0 rgba(255,255,255,.80);
+      color:var(--text);padding:16px 18px;
     }
     .dark .card-teal{
-      background:linear-gradient(145deg,#5DEBD6 0%,#12B5A0 42%,#077A6B 75%,#024840 100%);
-      box-shadow:0 12px 48px rgba(18,181,160,.26),0 4px 14px rgba(18,181,160,.16),inset 0 1px 0 rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(13,158,139,.20) 0%,rgba(5,107,94,.16) 100%);
+      border-color:rgba(18,181,160,.20);
+      box-shadow:0 4px 20px rgba(0,0,0,.30),0 1px 4px rgba(0,0,0,.20),inset 0 1px 0 rgba(18,181,160,.14);
+      color:var(--text);
     }
-    /* shimmer AI cards */
+    .card-teal .card-title,.card-teal [style*="font-weight:700"]{color:#065F52}
+    .dark .card-teal .card-title,.dark .card-teal [style*="font-weight:700"]{color:#5DEBD6}
+
+    /* shimmer sutil — mismo patrón que .card-green */
     .card-purple::before,.card-indigo::before,.card-teal::before{
       content:'';position:absolute;inset:0;border-radius:inherit;
-      background:
-        radial-gradient(ellipse at 78% 14%,rgba(255,255,255,.22) 0%,transparent 52%),
-        radial-gradient(ellipse at 20% 80%,rgba(0,0,0,.10) 0%,transparent 50%);
+      background:radial-gradient(ellipse at 80% 10%,rgba(255,255,255,.55) 0%,transparent 55%);
       pointer-events:none;z-index:0;
     }
     .card-purple > *,.card-indigo > *,.card-teal > *{position:relative;z-index:1}
+
+    /* muted dentro de AI cards — heredar del sistema */
     .card-purple [style*="color:var(--muted)"],
     .card-indigo [style*="color:var(--muted)"],
-    .card-teal  [style*="color:var(--muted)"]{color:rgba(255,255,255,.68)!important}
-    .card-purple > *:not(input):not(button),
-    .card-indigo > *:not(input):not(button),
-    .card-teal  > *:not(input):not(button){color:inherit}
+    .card-teal  [style*="color:var(--muted)"]{color:var(--muted)!important}
+
+    /* btn-add-circle en AI cards */
+    .card-purple .btn-add-circle{background:rgba(139,68,204,.12);color:#6B21A8}
+    .card-indigo .btn-add-circle{background:rgba(58,82,232,.11);color:#1E3A9C}
+    .card-teal   .btn-add-circle{background:rgba(13,158,139,.12);color:#065F52}
+    .dark .card-purple .btn-add-circle{background:rgba(191,90,242,.18);color:#D09BFF}
+    .dark .card-indigo .btn-add-circle{background:rgba(79,106,255,.18);color:#9DAAFF}
+    .dark .card-teal   .btn-add-circle{background:rgba(18,181,160,.18);color:#5DEBD6}
     .card-orange{
       background:linear-gradient(145deg,rgba(26,138,74,.11) 0%,rgba(26,138,74,.04) 40%,var(--surface) 100%);
       border-color:rgba(26,138,74,.18);
@@ -832,19 +929,23 @@
     /* ── SPLASH ── */
     #splash{
       position:fixed;inset:0;z-index:9999;
-      background:linear-gradient(160deg,#2ECC71 0%,#1A8A4A 55%,#0F5C32 100%);
+      background:var(--bg,#ECEEF3);
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       transition:opacity .45s ease,transform .45s ease;
     }
     #splash.hide{opacity:0;transform:scale(1.03);pointer-events:none}
-    .splash-logo{width:96px;height:96px;border-radius:26px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;overflow:hidden;animation:splashLogoIn .55s cubic-bezier(.34,1.56,.64,1) .1s both}
+    .splash-logo{width:96px;height:96px;border-radius:26px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;overflow:hidden;animation:splashLogoIn .55s cubic-bezier(.34,1.56,.64,1) .1s both;box-shadow:0 8px 32px rgba(26,138,74,.18),0 2px 8px rgba(26,138,74,.10)}
     .splash-logo img{width:100%;height:100%;display:block}
-    .splash-name{font-weight:700;font-size:28px;color:#fff;letter-spacing:-.6px;line-height:1;animation:splashTextIn .45s ease .3s both}
-    .splash-sub{font-size:13px;color:rgba(255,255,255,.65);margin-top:8px;font-weight:500;animation:splashTextIn .45s ease .4s both}
+    .splash-name{font-weight:700;font-size:28px;color:var(--text,#1C1C1E);letter-spacing:-.6px;line-height:1;animation:splashTextIn .45s ease .3s both}
+    .splash-sub{font-size:13px;color:var(--muted,#8E8E93);margin-top:8px;font-weight:500;animation:splashTextIn .45s ease .4s both}
     .splash-dots{display:flex;gap:7px;margin-top:40px;animation:splashTextIn .45s ease .55s both}
-    .splash-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);animation:dotPulse 1.2s ease-in-out infinite}
+    .splash-dot{width:5px;height:5px;border-radius:50%;background:rgba(26,138,74,.35);animation:dotPulse 1.2s ease-in-out infinite}
     .splash-dot:nth-child(2){animation-delay:.2s}
     .splash-dot:nth-child(3){animation-delay:.4s}
+    .dark #splash{background:var(--bg,#0A0A0F)}
+    .dark .splash-name{color:var(--text,#FFFFFF)}
+    .dark .splash-sub{color:var(--muted,rgba(235,235,245,.50))}
+    .dark .splash-dot{background:rgba(48,209,88,.45)}
     @keyframes splashLogoIn{from{opacity:0;transform:scale(.7) translateY(14px)}to{opacity:1;transform:none}}
     @keyframes splashTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
     @keyframes dotPulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
@@ -1461,7 +1562,7 @@ const BASE_CATEGORIES={
   'Alimentación':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>','Transporte':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M5 17h14"/><path d="M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path d="M23 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path d="M3 17V8l2-5h12l4 5v9"/><path d="M3 11h18"/></svg>','Vivienda':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>','Salud':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M10.5 20.5a4.95 4.95 0 0 1-7-7l10-10a4.95 4.95 0 0 1 7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>','Ocio':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>',
   'Ropa':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg>','Educación':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>','Tecnología':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="21" x2="22" y2="21"/></svg>','Restaurantes':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M3 2v7a4 4 0 0 0 4 4v9"/><path d="M7 2v11"/><path d="M11 2v11"/><path d="M21 15V2c-2 0-4 1-4 5v7h4v7"/></svg>️','Viajes':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>️',
   'Ahorro':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>','Nómina':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>','Freelance':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>','Inversión':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>','Préstamo':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg>',
-  'Hipoteca':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>','Suscripciones':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>','Transferencia':'↔️','Otro':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
+  'Hipoteca':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>','Suscripciones':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>','Intereses':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>','Ocio':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>','Educación':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>','Inversión':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>','Seguros':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>','Transferencia':'↔️','Otro':'<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
 };
 
 const SOURCES={
@@ -1880,17 +1981,87 @@ function normalizeText(t=''){
 }
 
 const CATEGORY_KEYWORDS={
-  'Alimentación':['mercadona','carrefour','lidl','aldi','dia','hiperber','consum','eroski','alcampo','supermercado','petroprix','repsol','cepsa','bp','shell','snacks','vending','glovo','uber eats'],
-  'Transporte':['petroprix','repsol','cepsa','bp','shell','gasolina','gasolinera','parking','uber','cabify','bolt','renfe','metro'],
-  'Restaurantes':['mcdonald','burger king','kfc','goiko','telepizza','dominos','just eat','glovo','uber eats','restaurant','restaurante','cafeteria','bar','cafe'],
-  'Suscripciones':['netflix','spotify','amazon prime','hbo','disney','youtube premium','icloud','google one','chatgpt','openai'],
-  'Tecnología':['amazon','pccomponentes','mediamarkt','apple','xiaomi','samsung','steam'],
-  'Vivienda':['alquiler','hipoteca','ikea','leroy merlin','endesa','iberdrola','movistar','vodafone','orange'],
-  'Salud':['farmacia','clinica','hospital','dentista','fisio'],
-  'Ropa':['zara','bershka','nike','adidas','primark'],
-  'Viajes':['airbnb','booking','ryanair','iberia','hotel'],
-  'Nómina':['nomina','salary','payroll','sueldo'],
-  'Préstamo':['prestamo','loan','credito','cuota'],
+  'Alimentación':[
+    'mercadona','carrefour','carref','lidl','aldi','dia ','hiperber','consum','eroski','alcampo','supermercado',
+    'snacks','vending','glovo','uber eats','maquina agua','maquina snacks','kiosco',
+    'fruteria','panaderia','verduleria','carniceria','pescaderia',
+    'el corte ingles alimentacion','ahorramas','bonarea','simply','condis','spar',
+    'too good to go','pyter pan','nou moli',
+    'hiper xt','hiper asia','super zoco','fresca fruta','frutas y verduras','el nou palau',
+    'sqrups','normal elche','normal laljub','les netetes','belros','helados caldo',
+    'panitot','el antojo','haagen','dazs','pasteler'
+  ],
+  'Transporte':[
+    'petroprix','repsol','cepsa','bp ','shell','galp','plenergy','avia ','campsa',
+    'ballenoil','es combustibles','energy puerta',
+    'gasolina','gasolinera','parking','parquin','aparcamiento','aparcamurcia',
+    'uber','cabify','bolt','renfe','metro','emt ','bus ','taxi','bizi','valenbisi',
+    'autopista','peaje','vignette','carter cash'
+  ],
+  'Restaurantes':[
+    'mcdonald','burger king','bk ','bk2','bk crevillente','bk27','bk28',
+    'goiko','telepizza','dominos','just eat',
+    'glovo','uber eats','restaurant','restaurante','cafeteria','cafe ','bar ',
+    'kfc','6206 elche','plk','taco bell','five guys','vips',
+    '100 montaditos','cien montaditos','foster','cerveceria',
+    'tasca','meson','asador','pizzeria','sushi','kebap','kebab','hamburgues',
+    'heladeria','pasteleria','churreria','desayuno',
+    'nayma restauracion','hosteleria yuzhu','aires burger','la burger bandida',
+    'el pollo callosino','casa del pollo','taperia','la garduna',
+    'l\'amagatall','ferchi','haagen dazs','kentacky','kentucky',
+    'aires crevillente','elche ii avda'
+  ],
+  'Suscripciones':[
+    'netflix','spotify','amazon prime','hbo','disney','youtube premium',
+    'icloud','google one','chatgpt','openai','apple.com/bill','apple tv',
+    'dazn','filmin','crunchyroll','twitch','patreon','canva','dropbox',
+    'microsoft 365','office 365','adobe','audible','claude.ai'
+  ],
+  'Tecnología':[
+    'amazon','pccomponentes','mediamarkt','apple store','xiaomi','samsung','steam',
+    'fnac','game ','gamestop','google play','play apps','app store','world card',
+    'aliexpress','gearbest','banggood','backmarket',
+    'filesedi','techfun','xsolla','team randomk','u7buy'
+  ],
+  'Vivienda':[
+    'alquiler','hipoteca','ikea','leroy merlin','brico depot','bricodepot','brico d','aki ','bauhaus',
+    'endesa','iberdrola','naturgy','gas natural','aguas ','canal isabel','emasagra','hidraqua',
+    'movistar','vodafone','orange','digi ','pepephone','masmovil','jazztel','lowi',
+    'operadora iberica','comunidad ','ibi ','basura','seguro hogar','mapfre','axa ','mutua',
+    'coop electrica','octopus energy','bbva plan estar','kiwoko'
+  ],
+  'Salud':[
+    'farmacia','fcia ','clinica','hospital','dentista','fisio','optica','laboratorio',
+    'basic-fit','basic fit','gimnasio','gym ','mcfit','sanus','vitalia','sanitas',
+    'adeslas','asisa','druni','perfumeria','look fantastic',
+    'barber','macia','peluquer'
+  ],
+  'Ocio':[
+    'cinesa','excin','cines ','cinema','teatro','concierto',
+    'pac billett','billett enet','ticketmaster','eventbrite','entradas'
+  ],
+  'Ropa':[
+    'zara','bershka','nike','adidas','primark','pull and bear','pull&bear','massimo dutti',
+    'stradivarius','lefties','mango','h&m','hm ','decathlon','sprinter','jd sports',
+    'foot locker','shein','asos','sivasdescalzo','vinted','temu'
+  ],
+  'Viajes':[
+    'airbnb','booking','ryanair','iberia','hotel','hostal','vueling','easyjet',
+    'renfe ave','ave ','interrail','civitatis','tripadvisor','logitravel',
+    'car rental','hertz','avis ','sixt ','europcar'
+  ],
+  'Educación':[
+    'agapea','libreria','librería','tienda acam','atenea'
+  ],
+  'Inversión':[
+    'coinbase','degiro','etoro','trade republic','indexa','myinvestor','finizens'
+  ],
+  'Seguros':[
+    'allianz','cleverea','bbva plan estarseguro'
+  ],
+  'Nómina':['nomina','salary','payroll','sueldo','remuneracion','haberes'],
+  'Préstamo':['prestamo','loan','credito','cuota','amortizacion','financiacion','repayment'],
+  'Intereses':['interes neto','interes pagado','interes recibido','rendimiento','interest pagado'],
   'Transferencia':['bizum','transferencia','traspaso']
 };
 
@@ -1955,10 +2126,17 @@ function updateMovementCategory(id,newCategory){
 // ═══════════════════════════════════════════════════
 function isInterAccount(m){
   const d=m.desc.toLowerCase();
+  // BBVA → Revolut (cargo en BBVA por recarga Revolut)
   if(m.source==='bbva'&&d.includes('enviada desde revolut')) return true;
   if(m.source==='bbva'&&d.includes('transferencia realizada')&&d.includes('revo')) return true;
+  if(m.source==='bbva'&&/revolut\*+\d/.test(d)) return true;
+  // Efectivo — no es gasto en comercio, es movimiento de liquidez
+  if(m.source==='bbva'&&(d.includes('ingreso en efectivo')||d.includes('ret. efectivo')||d.includes('retirada de efectivo'))) return true;
+  // Revolut inter-cuenta
   if(m.source==='revolut'&&m.tipo==='Recargas') return true;
   if(m.source==='revolut'&&m.category==='Transferencia') return true;
+  if(m.source==='revolut'&&m.tipo==='Transferir'&&/^to [a-záéíóúüñ]+ [a-záéíóúüñ]+ [a-záéíóúüñ]+/i.test(m.desc)) return true;
+  if(m.source==='revolut'&&(d.includes('interes')&&d.includes('cuenta de ahorros')||d.includes('inter\xc3\xa9s')&&d.includes('ahorros')||d.includes('inter\xe9s neto'))) return true;
   return false;
 }
 
@@ -2443,33 +2621,43 @@ function parseCSVLine(line){
 }
 
 function parseBBVA(text){
-  // BBVA CSV/XLSX: cabecera contiene "Fecha valor", "Concepto", "Movimiento", "Importe", "Saldo"
+  // BBVA CSV: columna 0 vacía, 1=Fecha valor, 2=Fecha, 3=Concepto, 4=Movimiento, 5=Importe, 6=Divisa, 7=Disponible
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   let hi=-1;
   for(let i=0;i<Math.min(lines.length,12);i++){
     if(/fecha valor|fecha operaci/i.test(lines[i])){hi=i;break;}
   }
-  // Si no encuentra cabecera específica BBVA, delega al genérico
   if(hi<0) return parseGenericCSV(text);
 
   const sep=detectSep(lines[hi]);
   const header=splitBySep(lines[hi],sep).map(h=>h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim());
 
-  // BBVA: Fecha operación | Fecha valor | Descripción | Concepto | Movimiento | Importe | Divisa | Saldo | Divisa saldo
-  const di =colIdx(header,[/fecha valor/,/fecha/]);
-  const ni =colIdx(header,[/concepto|descripci|movimiento/]);
-  const ni2=colIdx(header,[/movimiento/]);
-  const ai =colIdx(header,[/importe|amount/]);
-  const bi =colIdx(header,[/saldo|balance|disponible/]);
+  // Buscar columnas por nombre exacto para evitar colisiones
+  // Concepto = nombre comercio; Movimiento = subtipo (PAGO CON TARJETA, BIZUM ENVIADO, etc.)
+  const fechaValorIdx = colIdx(header,[/^fecha valor$/]);
+  const fechaIdx      = colIdx(header,[/^fecha$/]);
+  const di  = fechaValorIdx >= 0 ? fechaValorIdx : (fechaIdx >= 0 ? fechaIdx : 1);
+  // Concepto va ANTES que Movimiento — aseguramos que no confunda las dos columnas
+  const conceptoIdx   = colIdx(header,[/^concepto$/,/descripc/]);
+  const movimientoIdx = colIdx(header,[/^movimiento$/]);
+  const ni  = conceptoIdx   >= 0 ? conceptoIdx   : 3;
+  const ni2 = movimientoIdx >= 0 ? movimientoIdx : 4;
+  const ai  = colIdx(header,[/^importe$/,/amount/]);
+  const bi  = colIdx(header,[/^disponible$/,/saldo|balance/]);
 
   const rows=[]; let realBalance=null, realBalanceDate='';
   for(let i=hi+1;i<lines.length;i++){
     const cols=splitBySep(lines[i],sep);
     if(cols.length<4) continue;
-    const rawDate=(cols[di>=0?di:1]||'').trim();
-    const concepto=(cols[ni>=0?ni:3]||'').trim().slice(0,60);
-    const movimiento=ni2>=0&&ni2!==ni?(cols[ni2]||'').trim().slice(0,60):'';
-    const desc=(concepto&&movimiento&&movimiento!==concepto)?`${concepto} - ${movimiento}`:(concepto||movimiento||'Movimiento');
+    const rawDate=(cols[di]||'').trim();
+    const concepto=(cols[ni]||'').trim().slice(0,60);
+    // Movimiento puede ser NaN en cargos de préstamos — no es error, usarlo si existe
+    const movimiento=(ni2!==ni&&cols[ni2]&&cols[ni2].trim()&&cols[ni2].trim().toLowerCase()!=='nan')
+      ? cols[ni2].trim().slice(0,60) : '';
+    // Descripción: si Movimiento aporta info extra (no es solo "OTROS"), concatenar
+    const desc = movimiento && movimiento!=='OTROS' && movimiento!==concepto
+      ? `${concepto} - ${movimiento}`
+      : (concepto || movimiento || 'Movimiento');
     const amt=normalizeAmt(cols[ai>=0?ai:5]||'');
     if(isNaN(amt)||!desc) continue;
     const date=parseDate(rawDate); if(!date) continue;
@@ -2926,16 +3114,16 @@ function rResumen(){
         <div class="balance-account-amt"><span class="${S.hideAmounts?'amt-hidden':''}">${fmt(b.balance)}</span></div>
         <div style="font-size:9px;opacity:.7;margin-top:3px"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-.18em;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Importar CSV / Excel</div>
       </div>`).join(''):`
-      <div style="flex:1;min-width:160px;padding:12px 8px;text-align:center;opacity:.6">
-        <div style="font-size:11px;color:rgba(255,255,255,.8);line-height:1.5">Añade tu primer banco para<br>ver tu saldo aquí</div>
+      <div style="flex:1;min-width:160px;padding:12px 8px;text-align:center;opacity:.7">
+        <div style="font-size:11px;color:var(--primary-dark);line-height:1.5">Añade tu primer banco para<br>ver tu saldo aquí</div>
       </div>`}
-      <div class="balance-account" onclick="openAddBank()" style="cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.75">
-        <div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.18);margin-bottom:5px">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="balance-account" onclick="openAddBank()" style="cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.85">
+        <div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:rgba(26,138,74,.16);margin-bottom:5px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
         </div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:.5px;opacity:.85">Añadir banco</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--primary-dark);opacity:.75">Añadir banco</div>
       </div>
     </div>
   </div>
@@ -2948,12 +3136,12 @@ function rResumen(){
   <div class="card card-amber">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin:0;display:flex;align-items:center;gap:8px">
-        <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(255,255,255,.20);border-radius:8px;flex-shrink:0">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h1m5 0h1M9 15h6"/><path d="M12 6v3m0 6v3"/></svg>
+        <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(224,120,0,.14);border-radius:8px;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--orange2,#E07800)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h1m5 0h1M9 15h6"/><path d="M12 6v3m0 6v3"/></svg>
         </span>
         Mis préstamos
       </div>
-      <button onclick="openAddDebt()" class="btn-add-circle" style="background:rgba(255,255,255,.22);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)">+</button>
+      <button onclick="openAddDebt()" class="btn-add-circle">+</button>
     </div>
     <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 8px 6px;-webkit-overflow-scrolling:touch">
       ${S.debts.length?S.debts.map(d=>{
@@ -2962,35 +3150,35 @@ function rResumen(){
         const months=d.monthly>0?Math.ceil(d.remaining/d.monthly):null;
         const arc=2*Math.PI*17;
         const dash=arc*(pct/100);
-        return `<div onclick="openAmort('${d.id}')" oncontextmenu="event.preventDefault();confirmDelete('debt','${d.id}','${d.name}')" data-longpress="debt|${d.id}|${d.name}" class="inner-card" style="flex-shrink:0;width:155px;background:rgba(100,40,0,.30);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:11px 12px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none">
+        return `<div onclick="openAmort('${d.id}')" oncontextmenu="event.preventDefault();confirmDelete('debt','${d.id}','${d.name}')" data-longpress="debt|${d.id}|${d.name}" class="inner-card" style="flex-shrink:0;width:155px;background:rgba(224,120,0,.10);border:1px solid rgba(224,120,0,.20);border-radius:13px;padding:11px 12px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <svg width="34" height="34" viewBox="0 0 34 34" style="flex-shrink:0">
               <defs>
                 <linearGradient id="debt-grad-${d.id}" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#FFB07A"/>
-                  <stop offset="100%" stop-color="#FF7A50"/>
+                  <stop offset="0%" stop-color="#E07800"/>
+                  <stop offset="100%" stop-color="#C05500"/>
                 </linearGradient>
               </defs>
-              <circle cx="17" cy="17" r="13" fill="none" stroke="rgba(255,255,255,.20)" stroke-width="3.5"/>
+              <circle cx="17" cy="17" r="13" fill="none" stroke="rgba(224,120,0,.18)" stroke-width="3.5"/>
               <circle cx="17" cy="17" r="13" fill="none" stroke="url(#debt-grad-${d.id})" stroke-width="3.5"
                 stroke-dasharray="${dash.toFixed(1)} ${(arc-dash).toFixed(1)}"
                 stroke-linecap="round" transform="rotate(-90 17 17)"/>
-              <text x="17" y="21" text-anchor="middle" font-size="8" font-weight="700" fill="#FFD0A0" font-family="JetBrains Mono,monospace">${pct}%</text>
+              <text x="17" y="21" text-anchor="middle" font-size="8" font-weight="700" fill="#A85200" font-family="JetBrains Mono,monospace">${pct}%</text>
             </svg>
             <div style="min-width:0;flex:1">
-              <div style="font-weight:700;font-size:11px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.name}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:2px;display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+              <div style="font-weight:700;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.name}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px;display:flex;gap:4px;align-items:center;flex-wrap:wrap">
                 <span>${months?'~'+months+' m':'—'}</span>
-                ${d.tin?`<span style="background:rgba(255,255,255,.18);color:#FFD0A0;font-weight:700;border-radius:4px;padding:1px 4px;font-size:9px">TIN ${d.tin}%</span>`:''}
+                ${d.tin?`<span style="background:rgba(224,120,0,.12);color:#A85200;font-weight:700;border-radius:4px;padding:1px 4px;font-size:9px">TIN ${d.tin}%</span>`:''}
               </div>
             </div>
           </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#FFB07A">${fmt(d.remaining)}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:1px">${fmt(d.monthly)}/mes</div>
-          <div style="background:rgba(255,255,255,.18);border-radius:4px;height:3px;margin-top:8px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FFB07A,#FF7A50);border-radius:4px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#C05500">${fmt(d.remaining)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${fmt(d.monthly)}/mes</div>
+          <div style="background:rgba(224,120,0,.14);border-radius:4px;height:3px;margin-top:8px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#E07800,#C05500);border-radius:4px"></div>
           </div>
-          <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:4px;text-align:right">Ver plan →</div>
+          <div style="font-size:10px;color:rgba(168,82,0,.7);margin-top:4px;text-align:right">Ver plan →</div>
         </div>`;
       }).join(''):`<div class="empty"><div class="empty-svg"><svg width="36" height="36" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="16" fill="var(--primary-bg)"/><path d="M16 28h4m16 0h4M26 18v4m0 8v4" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round"/><rect x="18" y="20" width="16" height="12" rx="3" stroke="var(--primary)" stroke-width="1.8"/><circle cx="26" cy="26" r="2.5" fill="var(--primary)" opacity=".5"/></svg></div><div class="empty-title">Sin préstamos aún</div><div class="empty-text">Registra hipotecas, préstamos o<br>cualquier deuda para hacer seguimiento</div></div>`}
     </div>
@@ -3000,12 +3188,12 @@ function rResumen(){
   <div class="card card-green">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin:0;display:flex;align-items:center;gap:8px">
-        <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(255,255,255,.20);border-radius:8px;flex-shrink:0">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(26,138,74,.14);border-radius:8px;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark,#14683A)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         </span>
         Mis ahorros
       </div>
-      <button onclick="openAddSaving()" class="btn-add-circle" style="background:rgba(255,255,255,.22);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)">+</button>
+      <button onclick="openAddSaving()" class="btn-add-circle">+</button>
     </div>
     <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 8px 4px;-webkit-overflow-scrolling:touch">
       ${S.savings.length?S.savings.map(s=>{
@@ -3015,34 +3203,34 @@ function rResumen(){
         const months=recommended>0&&s.current<s.target?Math.ceil((s.target-s.current)/recommended):null;
         const arc=2*Math.PI*17;
         const dash=arc*(pct/100);
-        return `<div onclick="openSavingDetail('${s.id}')" oncontextmenu="event.preventDefault();confirmDelete('saving','${s.id}','${s.name}')" data-longpress="saving|${s.id}|${s.name}" class="inner-card" style="flex-shrink:0;width:155px;background:rgba(0,60,25,.30);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:11px 12px 10px;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent">
+        return `<div onclick="openSavingDetail('${s.id}')" oncontextmenu="event.preventDefault();confirmDelete('saving','${s.id}','${s.name}')" data-longpress="saving|${s.id}|${s.name}" class="inner-card" style="flex-shrink:0;width:155px;background:rgba(26,138,74,.10);border:1px solid rgba(26,138,74,.20);border-radius:13px;padding:11px 12px 10px;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <svg width="34" height="34" viewBox="0 0 34 34" style="flex-shrink:0">
               <defs>
                 <linearGradient id="sav-grad-${s.id}" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#7EFFC0"/>
-                  <stop offset="100%" stop-color="#40D890"/>
+                  <stop offset="0%" stop-color="#1A8A4A"/>
+                  <stop offset="100%" stop-color="#0F6035"/>
                 </linearGradient>
               </defs>
-              <circle cx="17" cy="17" r="13" fill="none" stroke="rgba(255,255,255,.20)" stroke-width="3.5"/>
+              <circle cx="17" cy="17" r="13" fill="none" stroke="rgba(26,138,74,.18)" stroke-width="3.5"/>
               <circle cx="17" cy="17" r="13" fill="none" stroke="url(#sav-grad-${s.id})" stroke-width="3.5"
                 stroke-dasharray="${dash.toFixed(1)} ${(arc-dash).toFixed(1)}"
                 stroke-linecap="round" transform="rotate(-90 17 17)"/>
-              <text x="17" y="21" text-anchor="middle" font-size="8" font-weight="700" fill="#A8FFD0" font-family="JetBrains Mono,monospace">${pct}%</text>
+              <text x="17" y="21" text-anchor="middle" font-size="8" font-weight="700" fill="#0F6035" font-family="JetBrains Mono,monospace">${pct}%</text>
             </svg>
             <div style="min-width:0;flex:1">
-              <div style="font-weight:700;font-size:11px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:2px">${pct>=100?'¡Meta!':months?'~'+months+' m':'—'}</div>
+              <div style="font-weight:700;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${pct>=100?'¡Meta!':months?'~'+months+' m':'—'}</div>
             </div>
           </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#7EFFC0">${fmt(s.current)}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:1px">de ${fmt(s.target)}</div>
-          <div style="background:rgba(255,255,255,.18);border-radius:4px;height:3px;margin-top:8px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#7EFFC0,#40D890);border-radius:4px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#1A8A4A">${fmt(s.current)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">de ${fmt(s.target)}</div>
+          <div style="background:rgba(26,138,74,.14);border-radius:4px;height:3px;margin-top:8px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#1A8A4A,#0F6035);border-radius:4px"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.55);margin-top:4px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
             <span>Faltan ${fmt(Math.max(s.target-s.current,0))}</span>
-            <span style="color:#7EFFC0">Ver →</span>
+            <span style="color:#1A8A4A">Ver →</span>
           </div>
         </div>`;
       }).join(''):`<div class="empty"><div class="empty-svg"><svg width="36" height="36" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="16" fill="var(--primary-bg)"/><path d="M34 22c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 3.09 1.75 5.777 4.327 7.148L22 38h8l-.327-8.852C32.25 27.777 34 25.09 34 22z" stroke="var(--primary)" stroke-width="1.8" stroke-linejoin="round"/><line x1="21" y1="34" x2="31" y2="34" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round"/><line x1="26" y1="16" x2="26" y2="20" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="empty-title">Sin metas de ahorro</div><div class="empty-text">Define objetivos y sigue tu progreso<br>hacia lo que más te importa</div></div>`}
@@ -3052,12 +3240,12 @@ function rResumen(){
   <div class="card card-blue">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin:0;display:flex;align-items:center;gap:8px">
-        <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(255,255,255,.20);border-radius:8px;flex-shrink:0">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(0,122,255,.14);border-radius:8px;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue,#007AFF)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         </span>
         Mis presupuestos
       </div>
-      <button onclick="openAddBudget()" class="btn-add-circle" style="background:rgba(255,255,255,.22);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)">+</button>
+      <button onclick="openAddBudget()" class="btn-add-circle">+</button>
     </div>
     ${sorted.length?sorted.map(([cat,amt])=>{
       const budget=S.budgets[cat]||null;
@@ -3907,19 +4095,19 @@ function prioColor(p){ return p==='alta'?'var(--red)':p==='media'?'var(--primary
 function buildScoreBlock(hasData){
   if(S.analysisLoading){
     return '<div class="card card-teal" style="text-align:center;padding:36px 20px;margin:0 14px">'
-      + '<div style="display:flex;justify-content:center;margin-bottom:14px"><div style="width:48px;height:48px;background:rgba(255,255,255,.15);border-radius:16px;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 5 9.5a2.5 2.5 0 0 1 4.5-1.5"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 19 9.5a2.5 2.5 0 0 0-4.5-1.5"/></svg></div></div>'
-      + '<div style="font-weight:700;font-size:16px;margin-bottom:8px">Analizando tu situación...</div>'
-      + '<div style="font-size:12px;margin-bottom:20px;opacity:.75">Puede tardar unos segundos</div>'
-      + '<div style="display:flex;justify-content:center"><div style="width:34px;height:34px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot2 .8s linear infinite"></div></div>'
+      + '<div style="display:flex;justify-content:center;margin-bottom:14px"><div style="width:48px;height:48px;background:rgba(13,158,139,.14);border-radius:16px;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#065F52" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 5 9.5a2.5 2.5 0 0 1 4.5-1.5"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 19 9.5a2.5 2.5 0 0 0-4.5-1.5"/></svg></div></div>'
+      + '<div style="font-weight:700;font-size:16px;margin-bottom:8px;color:var(--text)">Analizando tu situación...</div>'
+      + '<div style="font-size:12px;margin-bottom:20px;color:var(--muted)">Puede tardar unos segundos</div>'
+      + '<div style="display:flex;justify-content:center"><div style="width:34px;height:34px;border:3px solid rgba(13,158,139,.25);border-top-color:#065F52;border-radius:50%;animation:rot2 .8s linear infinite"></div></div>'
       + '</div>';
   }
   return '<div class="card card-teal" style="text-align:center;padding:36px 20px;margin:0 14px">'
-    + '<div style="display:flex;justify-content:center;margin-bottom:14px"><div style="width:56px;height:56px;background:rgba(255,255,255,.15);border-radius:18px;display:flex;align-items:center;justify-content:center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 5 9.5a2.5 2.5 0 0 1 4.5-1.5"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 19 9.5a2.5 2.5 0 0 0-4.5-1.5"/></svg></div></div>'
+    + '<div style="display:flex;justify-content:center;margin-bottom:14px"><div style="width:56px;height:56px;background:rgba(13,158,139,.14);border-radius:18px;display:flex;align-items:center;justify-content:center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#065F52" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 5 9.5a2.5 2.5 0 0 1 4.5-1.5"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 19 9.5a2.5 2.5 0 0 0-4.5-1.5"/></svg></div></div>'
     + '<div style="font-weight:800;font-size:17px;margin-bottom:8px">Análisis financiero completo</div>'
     + '<div style="font-size:12px;line-height:1.8;margin-bottom:20px;opacity:.8">Puntuación de salud financiera, fortalezas,<br/>áreas de mejora y plan de acción personalizado.</div>'
-    + (S.analysisError ? '<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:11px;margin-bottom:14px;font-size:12px;opacity:.9">'+S.analysisError+'</div>' : '')
-    + (!hasData ? '<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:11px;margin-bottom:14px;font-size:12px;opacity:.9">Importa tus CSVs primero para un análisis más preciso</div>' : '')
-    + '<button class="btn" id="run-analysis-btn" style="margin:0 auto;display:flex;align-items:center;gap:8px;background:#023F37;border-color:#023F37;box-shadow:0 4px 14px rgba(2,63,55,.4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar análisis</button>'
+    + (S.analysisError ? '<div style="background:rgba(13,158,139,.12);border-radius:10px;padding:11px;margin-bottom:14px;font-size:12px;color:#065F52;font-weight:500">'+S.analysisError+'</div>' : '')
+    + (!hasData ? '<div style="background:rgba(13,158,139,.10);border-radius:10px;padding:11px;margin-bottom:14px;font-size:12px;color:#065F52;font-weight:500">Importa tus CSVs primero para un análisis más preciso</div>' : '')
+    + '<button class="btn" id="run-analysis-btn" style="margin:0 auto;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar análisis</button>'
     + '<div style="margin-top:14px;font-size:10px;opacity:.65;line-height:1.6">Los consejos son orientativos. No constituyen asesoramiento financiero profesional.<br/><span onclick="openPrivacyPolicy()" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px">Privacidad y datos →</span></div>'
     + '</div>';
 }
@@ -3946,7 +4134,7 @@ function rAnalysis(){
         <div style="font-family:'JetBrains Mono',monospace;font-size:60px;font-weight:700;line-height:1;color:${scoreColor}">${a.puntuacion}</div>
         <div style="font-size:11px;opacity:.7;margin-top:2px">puntos de 100</div>
         <div style="max-width:220px;margin:14px auto 0">
-          <div style="background:rgba(0,0,0,.2);border-radius:8px;height:9px;overflow:hidden">
+          <div style="background:rgba(13,158,139,.15);border-radius:8px;height:9px;overflow:hidden">
             <div style="width:${a.puntuacion}%;height:100%;background:rgba(255,255,255,.85);border-radius:8px;transition:width .6s ease"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:10px;opacity:.65;margin-top:4px;font-weight:600"><span>Crítico</span><span>Óptimo</span></div>
@@ -3954,14 +4142,14 @@ function rAnalysis(){
         <div style="font-size:13px;opacity:.88;margin-top:12px;line-height:1.7;max-width:300px;margin-left:auto;margin-right:auto">${a.resumen}</div>
       </div>
       <div class="a-section card-purple">
-        <div class="a-section-title" style="color:rgba(255,255,255,.65)">Puntos fuertes</div>
-        ${(a.puntos_fuertes || []).map(p => `<div class="a-item" style="color:rgba(255,255,255,.9)"><span>✓</span><span>${p}</span></div>`).join('')}
+        <div class="a-section-title">Puntos fuertes</div>
+        ${(a.puntos_fuertes || []).map(p => `<div class="a-item"><span>✓</span><span>${p}</span></div>`).join('')}
       </div>
       <div class="a-section card-purple">
-        <div class="a-section-title" style="color:rgba(255,255,255,.65)">Áreas de mejora</div>
-        ${(a.areas_mejora || []).map(p => `<div class="a-item" style="color:rgba(255,255,255,.9)"><span>→</span><span>${p}</span></div>`).join('')}
+        <div class="a-section-title">Áreas de mejora</div>
+        ${(a.areas_mejora || []).map(p => `<div class="a-item"><span>→</span><span>${p}</span></div>`).join('')}
       </div>
-      <button class="btn btn-outline btn-full" id="run-analysis-btn" style="margin-top:10px;margin-left:14px;margin-right:14px;border-color:rgba(2,63,55,.5);color:#023F37">Regenerar análisis</button>
+      <button class="btn btn-outline btn-full" id="run-analysis-btn" style="margin-top:10px;margin-left:14px;margin-right:14px">Regenerar análisis</button>
     `;
   }
 
@@ -4179,8 +4367,8 @@ function buildChatCard(){
   return `
   <div class="card card-purple" style="padding:16px 18px;margin:0 14px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <div style="width:30px;height:30px;background:rgba(255,255,255,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <div style="width:30px;height:30px;background:rgba(139,68,204,.14);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B21A8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </div>
       <div>
         <div style="font-weight:700;font-size:13px">Pregunta al asesor</div>
@@ -4369,10 +4557,10 @@ function buildTipsEmpty(){
   return `<div class="card card-indigo" style="padding:16px 18px;margin:0 14px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px">
-        <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:rgba(255,255,255,.15);border-radius:7px">${bulbSvg}</span>
+        <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:rgba(58,82,232,.12);border-radius:7px">${bulbSvg}</span>
         Consejos personalizados
       </div>
-      <button id="gen-tips-btn" class="btn btn-sm" style="font-size:11px;padding:5px 12px;background:#0D1A99;border-color:#0D1A99;box-shadow:0 4px 12px rgba(13,26,153,.4)">Generar</button>
+      <button id="gen-tips-btn" class="btn btn-sm" style="font-size:11px;padding:5px 12px">Generar</button>
     </div>
     <div style="font-size:12px;line-height:1.6;opacity:.82">Pulsa "Generar" para recibir consejos basados en tus datos actuales. No requiere análisis completo.</div>
   </div>`;
@@ -4385,10 +4573,10 @@ function buildTipsCard(){
   return `<div class="card card-indigo" style="padding:16px 18px;margin:0 14px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px">
-        <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:rgba(255,255,255,.15);border-radius:7px">${bulbSvg}</span>
+        <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:rgba(58,82,232,.12);border-radius:7px">${bulbSvg}</span>
         Consejos del día
       </div>
-      <button id="gen-tips-btn" class="btn btn-sm" style="font-size:11px;padding:5px 12px;display:flex;align-items:center;gap:5px;background:#0D1A99;border-color:#0D1A99;box-shadow:0 4px 12px rgba(13,26,153,.4)">${refreshSvg} Actualizar</button>
+      <button id="gen-tips-btn" class="btn btn-sm" style="font-size:11px;padding:5px 12px;display:flex;align-items:center;gap:5px">${refreshSvg} Actualizar</button>
     </div>
     <div style="font-size:13px;line-height:1.85;white-space:pre-line;opacity:.9">${cleanTips}</div>
     ${S.tipsDate?`<div style="font-size:10px;opacity:.65;margin-top:8px">Generado: ${S.tipsDate}</div>`:''}
@@ -4617,18 +4805,18 @@ function buildChatInput(){
   const suggestionsHtml = !hasChat ? `
     <div id="chat-suggestions" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
       ${suggestions.map(q=>`
-        <button onclick="document.getElementById('chat-input').value=${JSON.stringify(q)};sendChat()" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.85);font-size:12px;text-align:left;cursor:pointer;font-family:inherit;line-height:1.4;-webkit-tap-highlight-color:transparent">${q}</button>
+        <button onclick="document.getElementById('chat-input').value=${JSON.stringify(q)};sendChat()" style="background:rgba(139,68,204,.08);border:1px solid rgba(139,68,204,.18);border-radius:10px;padding:8px 12px;color:#6B21A8;font-size:12px;text-align:left;cursor:pointer;font-family:inherit;line-height:1.4;-webkit-tap-highlight-color:transparent">${q}</button>
       `).join('')}
     </div>` : '';
   return `
     <div id="chat-history" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;max-height:320px;overflow-y:auto"></div>
     ${suggestionsHtml}
     <div style="display:flex;gap:8px;align-items:center">
-      <input id="chat-input" placeholder="Escribe tu pregunta…" style="flex:1;font-size:13px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:12px;padding:9px 12px" />
-      <button onclick="sendChat()" class="btn btn-sm" style="flex-shrink:0;background:#3D1166;border-color:#3D1166;box-shadow:0 4px 12px rgba(61,17,102,.4)">Enviar</button>
+      <input id="chat-input" placeholder="Escribe tu pregunta…" style="flex:1;font-size:13px;background:rgba(139,68,204,.07);border:1px solid rgba(139,68,204,.18);color:var(--text);border-radius:12px;padding:9px 12px" />
+      <button onclick="sendChat()" class="btn btn-sm" style="flex-shrink:0">Enviar</button>
     </div>
     <div id="chat-clear-wrap" style="display:none;text-align:right;margin-top:6px">
-      <button onclick="S.chatHistory=[];saveState();renderChatHistory();document.getElementById('chat-clear-wrap').style.display='none';document.getElementById('chat-suggestions')&&(document.getElementById('chat-suggestions').style.display='flex')" style="background:none;border:none;font-size:11px;color:rgba(255,255,255,.5);cursor:pointer;padding:0">Borrar historial</button>
+      <button onclick="S.chatHistory=[];saveState();renderChatHistory();document.getElementById('chat-clear-wrap').style.display='none';document.getElementById('chat-suggestions')&&(document.getElementById('chat-suggestions').style.display='flex')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0">Borrar historial</button>
     </div>`;
 }
 
@@ -4689,15 +4877,15 @@ window.sendChat = async ()=>{
 function renderChatHistory(){
   const el=document.getElementById('chat-history');
   if(!el||!S.chatHistory) return;
-  const botAvatar='<div style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 5 9.5a2.5 2.5 0 0 1 4.5-1.5"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 19 9.5a2.5 2.5 0 0 0-4.5-1.5"/></svg></div>';
+  const botAvatar='<div style="width:26px;height:26px;border-radius:50%;background:rgba(139,68,204,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B21A8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 5 9.5a2.5 2.5 0 0 1 4.5-1.5"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 19 9.5a2.5 2.5 0 0 0-4.5-1.5"/></svg></div>';
   el.innerHTML=(S.chatHistory||[]).map(function(m){
     const isUser=m.role==='user';
     if(isUser){
       return '<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'
         +'<div style="max-width:82%;padding:10px 14px;'
         +'border-radius:18px 18px 4px 18px;'
-        +'background:#5E1F99;border:1px solid rgba(255,255,255,.18);'
-        +'color:#fff;'
+        +'background:rgba(139,68,204,.14);border:1px solid rgba(139,68,204,.20);'
+        +'color:var(--text);'
         +'font-size:13px;line-height:1.6;'+(m.thinking?'opacity:.5':'')+';">'
         +m.text
         +'</div></div>';
@@ -4707,7 +4895,7 @@ function renderChatHistory(){
           +botAvatar
           +'<div style="padding:12px 14px;'
           +'border-radius:4px 18px 18px 18px;'
-          +'background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);'
+          +'background:rgba(139,68,204,.08);border:1px solid rgba(139,68,204,.15);'
           +'display:flex;align-items:center;gap:4px">'
           +'<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>'
           +'</div></div>';
@@ -4716,8 +4904,8 @@ function renderChatHistory(){
         +botAvatar
         +'<div style="max-width:82%;padding:10px 14px;'
         +'border-radius:4px 18px 18px 18px;'
-        +'background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);'
-        +'color:rgba(255,255,255,.92);'
+        +'background:rgba(255,255,255,.70);border:1px solid rgba(139,68,204,.12);'
+        +'color:var(--text);'
         +'font-size:13px;line-height:1.6">'
         +m.text
         +'</div></div>';
@@ -5734,21 +5922,38 @@ document.addEventListener('gestureend', e=>e.preventDefault(), {passive:false});
 // SWIPE BETWEEN TABS
 // ═══════════════════════════════════════════════════
 (function(){
-  let startX=0, startY=0, startTime=0;
+  let startX=0, startY=0, startTime=0, insideHScroll=false;
   const content = document.getElementById('content');
+
+  // Check if an element or any ancestor has horizontal scroll
+  function isInsideHorizontalScroller(el){
+    while(el && el !== content){
+      const style = window.getComputedStyle(el);
+      const ox = style.overflowX;
+      if((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
 
   content.addEventListener('touchstart', e=>{
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     startTime = Date.now();
+    insideHScroll = isInsideHorizontalScroller(e.target);
   }, {passive:true});
 
   content.addEventListener('touchend', e=>{
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
     const dt = Date.now() - startTime;
-    // Only register as swipe if: fast (<350ms), mostly horizontal, and >50px
-    if(dt > 350 || Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)*0.8) return;
+    if(insideHScroll){
+      // Inside a horizontal scroller: require a much bigger, faster, cleaner swipe
+      if(dt > 250 || Math.abs(dx) < 120 || Math.abs(dy) > Math.abs(dx)*0.3) return;
+    } else {
+      // Normal area: fast (<350ms), mostly horizontal (ratio >2:1), and >60px
+      if(dt > 350 || Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)*0.5) return;
+    }
     const idx = TABS.indexOf(S.tab);
     if(dx < 0 && idx < TABS.length-1) setTab(TABS[idx+1]); // swipe left → next
     if(dx > 0 && idx > 0)             setTab(TABS[idx-1]); // swipe right → prev
